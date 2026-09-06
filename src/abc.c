@@ -580,135 +580,17 @@ void parse_fen(char *fen)
 
 \***********************************************/
 
-// is square attacked
-/*static inline int is_square_attacked(int square, int side)
-{
-    // pawn attacks
-    if (!side)
-    {
-        // if target square is on board and is white pawn
-        if (!((square + 17) & 0x88) && (board[square + 17] == P))
-            return 1;
-        
-        // if target square is on board and is white pawn
-        if (!((square + 15) & 0x88) && (board[square + 15] == P))
-            return 1;
-    }
-    
-    else
-    {
-        // if target square is on board and is black pawn
-        if (!((square - 17) & 0x88) && (board[square - 17] == p))
-            return 1;
-        
-        // if target square is on board and is black pawn
-        if (!((square - 15) & 0x88) && (board[square - 15] == p))
-            return 1;
-    }
-    
-    // knight attacks
-    for (int index = 0; index < 8; index++)
-    {
-        // init target square
-        int target_square = square + knight_offsets[index];
-        
-        // lookup target piece
-        int target_piece = board[target_square];
-        
-        // if target square is on board
-        if (!(target_square & 0x88))
-        {
-            if (!side ? target_piece == N : target_piece == n)
-                return 1;
-        } 
-    }
-    
-    // king attacks
-    for (int index = 0; index < 8; index++)
-    {
-        // init target square
-        int target_square = square + king_offsets[index];
-        
-        // lookup target piece
-        int target_piece = board[target_square];
-        
-        // if target square is on board
-        if (!(target_square & 0x88))
-        {
-            // if target piece is either white or black king
-            if (!side ? target_piece == K : target_piece == k)
-                return 1;
-        } 
-    }
-    
-    // bishop & queen attacks
-    for (int index = 0; index < 4; index++)
-    {
-        // init target square
-        int target_square = square + bishop_offsets[index];
-        
-        // loop over attack ray
-        while (!(target_square & 0x88))
-        {
-            // target piece
-            int target_piece = board[target_square];
-            
-            // if target piece is either white or black bishop or queen
-            if (!side ? (target_piece == B || target_piece == Q) : (target_piece == b || target_piece == q))
-                return 1;
-
-            // break if hit a piece
-            if (target_piece)
-                break;
-        
-            // increment target square by move offset
-            target_square += bishop_offsets[index];
-        }
-    }
-    
-    // rook & queen attacks
-    for (int index = 0; index < 4; index++)
-    {
-        // init target square
-        int target_square = square + rook_offsets[index];
-        
-        // loop over attack ray
-        while (!(target_square & 0x88))
-        {
-            // target piece
-            int target_piece = board[target_square];
-            
-            // if target piece is either white or black bishop or queen
-            if (!side ? (target_piece == R || target_piece == Q) : (target_piece == r || target_piece == q))
-                return 1;
-
-            // break if hit a piece
-            if (target_piece)
-                break;
-        
-            // increment target square by move offset
-            target_square += rook_offsets[index];
-        }
-    }
-    
-    return 0;
-}*/
-
-static inline int is_square_attacked(int square, int color) {
+// Slower
+/*static inline int is_square_attacked(int square, int color) {
     for (int piece_type = king; piece_type <= queen; piece_type++) {
         int piece = piece_type | (color << 3);
-      
-        // pawn attacks
         if (piece_type == pawn) {
             int direction = 16 * (1 - 2 * color);
             for (int lr = -1; lr <= 1; lr += 2) {
                 int dst = square + direction + lr;
                 if (!(dst & 0x88) && board[dst] == piece) return 1;
             }
-        }
-      
-        // piece attacks
-        else {
+        } else {
             int slider = piece_type & 0x04;
             for (int d = 0; d < offset_length[piece_type]; d++) {
                 int dst = square;
@@ -723,6 +605,55 @@ static inline int is_square_attacked(int square, int color) {
                 } while (slider);
             }
         }
+    } return 0;
+}*/
+
+// Faster
+static inline int is_square_attacked(int square, int color)
+{
+    int colored_queen  = queen | (color << 3);
+    int colored_rook   = rook | (color << 3);
+    int colored_bishop = bishop | (color << 3);
+    int colored_knight = knight | (color << 3);
+    int colored_king   = king | (color << 3);
+    int colored_pawn   = pawn | (color << 3);
+
+    for (int d = 0; d < 4; d++) {
+        int target_square = square;
+        int step = 0;
+        do {
+            target_square += bishop_offsets[d];
+            step++;
+            if (target_square & 0x88) break;
+            int target_piece = board[target_square];
+            if (target_piece == e) continue;
+            if (target_piece == colored_bishop || target_piece == colored_queen) return 1;
+            if (step == 1) {
+                if (target_piece == colored_king) return 1;
+                if (target_piece == colored_pawn && ((1 - 2 * color) ^ bishop_offsets[d]) > 0) return 1;
+            } break;
+        } while (1);
+    }
+
+    for (int d = 0; d < 4; d++) {
+        int target_square = square;
+        int step = 0;
+        do {
+            target_square += rook_offsets[d];
+            step++;
+            if (target_square & 0x88) break;
+            int target_piece = board[target_square];
+            if (target_piece == e) continue;
+            if (target_piece == colored_rook || target_piece == colored_queen) return 1;
+            if (step == 1 && target_piece == colored_king) return 1;
+            break;
+        } while (1);
+    }
+
+    for (int d = 0; d < 8; d++) {
+        int target_square = square + knight_offsets[d];
+        if (target_square & 0x88) continue;
+        if (board[target_square] == colored_knight) return 1;
     } return 0;
 }
 
