@@ -698,12 +698,8 @@ void print_attacked_squares(int side)
 }
 
 // populate move list
-static inline void add_move(moves *move_list, int move)
-{
-    // push move into the move list
+static inline void add_move(moves *move_list, int move) {
     move_list->moves[move_list->count] = move;
-    
-    // increment move count
     move_list->count++;
 }
 
