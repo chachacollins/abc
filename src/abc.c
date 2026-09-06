@@ -180,6 +180,25 @@ int castling_rights[128] = {
     13, 15, 15, 15, 12, 15, 15, 14,  o, o, o, o, o, o, o, o
 };
 
+enum {
+    UP = -16,
+    RIGHT = +1,
+    DOWN = +16,
+    LEFT = -1,
+};
+
+int move_offsets[7][8] = {
+    {0},
+    {UP, RIGHT, DOWN, LEFT, UP + LEFT, UP + RIGHT, DOWN + LEFT, DOWN + RIGHT}, // KING
+    {0}, // PAWN
+    {UP + UP + LEFT, UP + UP + RIGHT, DOWN + DOWN + LEFT, DOWN + DOWN + RIGHT, LEFT + LEFT + UP, LEFT + LEFT + DOWN, RIGHT + RIGHT + UP, RIGHT + RIGHT + DOWN}, // KNIGHT
+    {UP + LEFT, UP + RIGHT, DOWN + LEFT, DOWN + RIGHT}, // BISHOP
+    {UP, RIGHT, DOWN, LEFT}, // ROOK
+    {UP, RIGHT, DOWN, LEFT, UP + LEFT, UP + RIGHT, DOWN + LEFT, DOWN + RIGHT} // QUEEN
+};
+
+int offset_length[7] = {0, 8, 0, 8, 4, 4, 8};
+
 // pawn positional score
 const int pawn_score[128] = 
 {
@@ -562,7 +581,7 @@ void parse_fen(char *fen)
 \***********************************************/
 
 // is square attacked
-static inline int is_square_attacked(int square, int side)
+/*static inline int is_square_attacked(int square, int side)
 {
     // pawn attacks
     if (!side)
@@ -673,6 +692,38 @@ static inline int is_square_attacked(int square, int side)
     }
     
     return 0;
+}*/
+
+static inline int is_square_attacked(int square, int color) {
+    for (int piece_type = king; piece_type <= queen; piece_type++) {
+        int piece = piece_type | (color << 3);
+      
+        // pawn attacks
+        if (piece_type == pawn) {
+            int direction = 16 * (1 - 2 * color);
+            for (int lr = -1; lr <= 1; lr += 2) {
+                int dst = square + direction + lr;
+                if (!(dst & 0x88) && board[dst] == piece) return 1;
+            }
+        }
+      
+        // piece attacks
+        else {
+            int slider = piece_type & 0x04;
+            for (int d = 0; d < offset_length[piece_type]; d++) {
+                int dst = square;
+                do {
+                    dst += move_offsets[piece_type][d];
+                    if (dst & 0x88) break;
+                    int attacker = board[dst];
+                    if (attacker != e) {
+                        if (attacker == piece) return 1;
+                        break;
+                    }
+                } while (slider);
+            }
+        }
+    } return 0;
 }
 
 // print attack map
