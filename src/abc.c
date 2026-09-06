@@ -136,6 +136,13 @@ int promoted_pieces[] = {
     
 */
 
+int pawn_starting_rank[] = {0x60, 0x10};
+int pawn_promoting_rank[] = {0x00, 0x70};
+int castling_side[2][2] = {
+    {1, 2},
+    {4, 8}
+};
+ 
 int material_score[13] = { // TODO: fix piece order!!!
       0,      // empty square score
     100,      // white pawn score
@@ -702,65 +709,32 @@ static inline void add_move(moves *move_list, int move)
 
 
 // move generator
-static inline void generate_moves(moves *move_list)
+/*static inline void generate_moves(moves *move_list)
 {
-    // reset move count
     move_list->count = 0;
-
-    // loop over all board squares
-    for (int square = 0; square < 128; square++)
-    {
-        // check if the square is on board
-        if (!(square & 0x88))
-        {
-            // white pawn and castling moves
-            if (!side)
-            {
-                // white pawn moves
-                if (board[square] == P)
-                {
-                    // init target square
+    for (int square = 0; square < 128; square++) {
+        if (!(square & 0x88)) {
+            if (!side) {
+                if (board[square] == P) {
                     int to_square = square - 16;
-                    
-                    // quite white pawn moves (check if target square is on board)
-                    if (!(to_square & 0x88) && !board[to_square])
-                    {   
-                        // pawn promotions
-                        if (square >= a7 && square <= h7)
-                        {
+                    if (!(to_square & 0x88) && !board[to_square]) {   
+                        if (square >= a7 && square <= h7) {
                             add_move(move_list, encode_move(square, to_square, Q, 0, 0, 0, 0));
                             add_move(move_list, encode_move(square, to_square, R, 0, 0, 0, 0));
                             add_move(move_list, encode_move(square, to_square, B, 0, 0, 0, 0));
                             add_move(move_list, encode_move(square, to_square, N, 0, 0, 0, 0));                            
-                        }
-                        
-                        else
-                        {
-                            // one square ahead pawn move
+                        } else {
                             add_move(move_list, encode_move(square, to_square, 0, 0, 0, 0, 0));
-                            
-                            // two squares ahead pawn move
                             if ((square >= a2 && square <= h2) && !board[square - 32])
                                 add_move(move_list, encode_move(square, square - 32, 0, 0, 1, 0, 0));
                         }
                     }
                     
-                    // white pawn capture moves
-                    for (int index = 0; index < 4; index++)
-                    {
-                        // init pawn offset
+                    for (int index = 0; index < 4; index++) {
                         int pawn_offset = bishop_offsets[index];
-                        
-                        // white pawn offsets
-                        if (pawn_offset < 0)
-                        {
-                            // init target square
+                        if (pawn_offset < 0) {
                             int to_square = square + pawn_offset;
-                            
-                            // check if target square is on board
-                            if (!(to_square & 0x88))
-                            {
-                                // capture pawn promotion
+                            if (!(to_square & 0x88)) {
                                 if (
                                      (square >= a7 && square <= h7) &&
                                      (board[to_square] >= k && board[to_square] <= q)
@@ -770,15 +744,9 @@ static inline void generate_moves(moves *move_list)
                                     add_move(move_list, encode_move(square, to_square, R, 1, 0, 0, 0));
                                     add_move(move_list, encode_move(square, to_square, B, 1, 0, 0, 0));
                                     add_move(move_list, encode_move(square, to_square, N, 1, 0, 0, 0));
-                                }
-                                
-                                else
-                                {
-                                    // casual capture
+                                } else {
                                     if (board[to_square] >= k && board[to_square] <= q)
                                         add_move(move_list, encode_move(square, to_square, 0, 1, 0, 0, 0));
-                                    
-                                    // enpassant capture
                                     if (to_square == enpassant)
                                         add_move(move_list, encode_move(square, to_square, 0, 1, 0, 1, 0));
                                 }
@@ -787,28 +755,18 @@ static inline void generate_moves(moves *move_list)
                     }
                 }
                 
-                // white king castling
-                if (board[square] == K)
-                {
-                    // if king side castling is available
-                    if (castle & KC)
-                    {
-                        // make sure there are empty squares between king & rook
-                        if (!board[f1] && !board[g1])
-                        {
-                            // make sure king & next square are not under attack
+                if (board[square] == K) {
+                    if (castle & KC) {
+                        if (!board[f1] && !board[g1]) {
                             if (!is_square_attacked(e1, black) && !is_square_attacked(f1, black))
                                 add_move(move_list, encode_move(e1, g1, 0, 0, 0, 0, 1));
                         }
                     }
                     
-                    // if queen side castling is available
                     if (castle & QC)
                     {
-                        // make sure there are empty squares between king & rook
                         if (!board[d1] && !board[b1] && !board[c1])
                         {
-                            // make sure king & next square are not under attack
                             if (!is_square_attacked(e1, black) && !is_square_attacked(d1, black))
                                 add_move(move_list, encode_move(e1, c1, 0, 0, 0, 0, 1));
                         }
@@ -816,54 +774,28 @@ static inline void generate_moves(moves *move_list)
                 }
             }
             
-            // black pawn and castling moves
-            else
-            {
-                // black pawn moves
-                if (board[square] == p)
-                {
-                    // init target square
+            else {
+                if (board[square] == p) {
                     int to_square = square + 16;
-                    
-                    // quite black pawn moves (check if target square is on board)
-                    if (!(to_square & 0x88) && !board[to_square])
-                    {   
-                        // pawn promotions
+                    if (!(to_square & 0x88) && !board[to_square]) {   
                         if (square >= a2 && square <= h2)
                         {
                             add_move(move_list, encode_move(square, to_square, q, 0, 0, 0, 0));
                             add_move(move_list, encode_move(square, to_square, r, 0, 0, 0, 0));
                             add_move(move_list, encode_move(square, to_square, b, 0, 0, 0, 0));
                             add_move(move_list, encode_move(square, to_square, n, 0, 0, 0, 0));
-                        }
-                        
-                        else
-                        {
-                            // one square ahead pawn move
+                        } else {
                             add_move(move_list, encode_move(square, to_square, 0, 0, 0, 0, 0));
-                            
-                            // two squares ahead pawn move
                             if ((square >= a7 && square <= h7) && !board[square + 32])
                                 add_move(move_list, encode_move(square, square + 32, 0, 0, 1, 0, 0));
                         }
                     }
                     
-                    // black pawn capture moves
-                    for (int index = 0; index < 4; index++)
-                    {
-                        // init pawn offset
+                    for (int index = 0; index < 4; index++) {
                         int pawn_offset = bishop_offsets[index];
-                        
-                        // white pawn offsets
-                        if (pawn_offset > 0)
-                        {
-                            // init target square
+                        if (pawn_offset > 0) {
                             int to_square = square + pawn_offset;
-                            
-                            // check if target square is on board
-                            if (!(to_square & 0x88))
-                            {
-                                // capture pawn promotion
+                            if (!(to_square & 0x88)) {
                                 if (
                                      (square >= a2 && square <= h2) &&
                                      (board[to_square] >= 1 && board[to_square] <= 6)
@@ -877,11 +809,8 @@ static inline void generate_moves(moves *move_list)
                                 
                                 else
                                 {
-                                    // casual capture
                                     if (board[to_square] >= 1 && board[to_square] <= 6)
                                         add_move(move_list, encode_move(square, to_square, 0, 1, 0, 0, 0));
-                                    
-                                    // enpassant capture
                                     if (to_square == enpassant)
                                         add_move(move_list, encode_move(square, to_square, 0, 1, 0, 1, 0));
                                 }
@@ -890,28 +819,17 @@ static inline void generate_moves(moves *move_list)
                     }
                 }
                 
-                // black king castling
-                if (board[square] == k)
-                {
-                    // if king side castling is available
-                    if (castle & kc)
-                    {
-                        // make sure there are empty squares between king & rook
-                        if (!board[f8] && !board[g8])
-                        {
-                            // make sure king & next square are not under attack
+                if (board[square] == k) {
+                    if (castle & kc) {
+                        if (!board[f8] && !board[g8]) {
                             if (!is_square_attacked(e8, white) && !is_square_attacked(f8, white))
                                 add_move(move_list, encode_move(e8, g8, 0, 0, 0, 0, 1));
                         }
                     }
                     
-                    // if queen side castling is available
-                    if (castle & qc)
-                    {
-                        // make sure there are empty squares between king & rook
+                    if (castle & qc) {
                         if (!board[d8] && !board[b8] && !board[c8])
                         {
-                            // make sure king & next square are not under attack
                             if (!is_square_attacked(e8, white) && !is_square_attacked(d8, white))
                                 add_move(move_list, encode_move(e8, c8, 0, 0, 0, 0, 1));
                         }
@@ -919,33 +837,19 @@ static inline void generate_moves(moves *move_list)
                 }
             }
             
-            // knight moves
-            if (!side ? board[square] == N : board[square] == n)
-            {
-                // loop over knight move offsets
-                for (int index = 0; index < 8; index++)
-                {
-                    // init target square
+            if (!side ? board[square] == N : board[square] == n) {
+                for (int index = 0; index < 8; index++) {
                     int to_square = square + knight_offsets[index];
-                    
-                    // init target piece
                     int piece = board[to_square];
-                    
-                    // make sure target square is onboard
-                    if (!(to_square & 0x88))
-                    {
-                        //
+                    if (!(to_square & 0x88)) {
                         if (
                              !side ?
                              (!piece || (piece >= k && piece <= q)) : 
                              (!piece || (piece >= K && piece <= Q))
                            )
                         {
-                            // on capture
                             if (piece)
                                 add_move(move_list, encode_move(square, to_square, 0, 1, 0, 0, 0));
-                                
-                            // on empty square
                             else
                                 add_move(move_list, encode_move(square, to_square, 0, 0, 0, 0, 0));
                         }
@@ -953,33 +857,20 @@ static inline void generate_moves(moves *move_list)
                 }
             }
             
-            // king moves
-            if (!side ? board[square] == K : board[square] == k)
-            {
-                // loop over king move offsets
-                for (int index = 0; index < 8; index++)
-                {
-                    // init target square
+            if (!side ? board[square] == K : board[square] == k) {
+                for (int index = 0; index < 8; index++) {
                     int to_square = square + king_offsets[index];
-                    
-                    // init target piece
                     int piece = board[to_square];
-                    
-                    // make sure target square is onboard
                     if (!(to_square & 0x88))
                     {
-                        //
                         if (
                              !side ?
                              (!piece || (piece >= k && piece <= q)) : 
                              (!piece || (piece >= K && piece <= Q))
                            )
                         {
-                            // on capture
                             if (piece)
                                 add_move(move_list, encode_move(square, to_square, 0, 1, 0, 0, 0));
-                                
-                            // on empty square
                             else
                                 add_move(move_list, encode_move(square, to_square, 0, 0, 0, 0, 0));
                         }
@@ -987,82 +878,133 @@ static inline void generate_moves(moves *move_list)
                 }
             }
             
-            // bishop & queen moves
             if (
                  !side ?
                  (board[square] == B) || (board[square] == Q) :
                  (board[square] == b) || (board[square] == q)
                )
             {
-                // loop over bishop & queen offsets
-                for (int index = 0; index < 4; index++)
-                {
-                    // init target square
+                for (int index = 0; index < 4; index++) {
                     int to_square = square + bishop_offsets[index];
-                    
-                    // loop over attack ray
-                    while (!(to_square & 0x88))
-                    {
-                        // init target piece
+                    while (!(to_square & 0x88)) {
                         int piece = board[to_square];
-                        
-                        // if hits own piece
                         if (!side ? (piece >= K && piece <= Q) : ((piece >= k && piece <= q)))
                             break;
-                        
-                        // if hits opponent's piece
-                        if (!side ? (piece >= k && piece <= q) : ((piece >= K && piece <= Q)))
-                        {
+                        if (!side ? (piece >= k && piece <= q) : ((piece >= K && piece <= Q))) {
                             add_move(move_list, encode_move(square, to_square, 0, 1, 0, 0, 0));
                             break;
                         }
-                        
-                        // if steps into an empty squre
                         if (!piece)
                             add_move(move_list, encode_move(square, to_square, 0, 0, 0, 0, 0));
-                        
-                        // increment target square
                         to_square += bishop_offsets[index];
                     }
                 }
             }
             
-            // rook & queen moves
             if (
                  !side ?
                  (board[square] == R) || (board[square] == Q) :
                  (board[square] == r) || (board[square] == q)
                )
             {
-                // loop over bishop & queen offsets
-                for (int index = 0; index < 4; index++)
-                {
-                    // init target square
+                for (int index = 0; index < 4; index++) {
                     int to_square = square + rook_offsets[index];
-                    
-                    // loop over attack ray
-                    while (!(to_square & 0x88))
-                    {
-                        // init target piece
+                    while (!(to_square & 0x88)) {
                         int piece = board[to_square];
-                        
-                        // if hits own piece
                         if (!side ? (piece >= K && piece <= Q) : ((piece >= k && piece <= q)))
                             break;
-                        
-                        // if hits opponent's piece
                         if (!side ? (piece >= k && piece <= q) : ((piece >= K && piece <= Q)))
                         {
                             add_move(move_list, encode_move(square, to_square, 0, 1, 0, 0, 0));
                             break;
                         }
-                        
-                        // if steps into an empty squre
                         if (!piece)
                             add_move(move_list, encode_move(square, to_square, 0, 0, 0, 0, 0));
-                        
-                        // increment target square
                         to_square += rook_offsets[index];
+                    }
+                }
+            }
+        }
+    }
+}*/
+
+static inline void generate_moves(moves *move_list) {
+    move_list->count = 0;
+    for (int src = 0; src < 128; src++) {
+        if (!(src & 0x88)) {
+            int piece = board[src];
+            int piece_type = piece & 7;
+            
+            if ((piece >> 3) == side) {
+                
+                
+                if (piece_type == pawn) {
+                    int direction = -16 * (1 - 2 * side);
+                    int dst = src + direction;
+                    if ((dst & 0x88) == 0 && board[dst] == e) { 
+                        if ((dst & 0xF0) == pawn_promoting_rank[side]) {
+                            for (int promoted_piece = queen; promoted_piece >= knight; promoted_piece--)
+                                add_move(move_list, encode_move(src, dst, (promoted_piece | (side << 3)), 1, 0, 0, 0));
+                        } else {
+                            add_move(move_list, encode_move(src, dst, 0, 0, 0, 0, 0));
+                            int double_dst = src + direction * 2;
+                            if ((src & 0xF0) == pawn_starting_rank[side] && board[double_dst] == e)
+                                add_move(move_list, encode_move(src, double_dst, 0, 0, 1, 0, 0));
+                        }
+                    }
+                    
+                    for (int lr = -1; lr <= 1; lr += 2) {
+                        dst = src + direction + lr;
+                        if (dst & 0x88) continue;
+                        int dst_piece = board[dst];
+                      
+                        if (dst_piece != e && (dst_piece >> 3) != side) {
+                            if ((dst & 0xF0) == pawn_promoting_rank[side]) {
+                                for (int promoted_piece = queen; promoted_piece >= knight; promoted_piece--)
+                                    add_move(move_list, encode_move(src, dst, (promoted_piece | (side << 3)), 1, 0, 0, 0));
+                            } else add_move(move_list, encode_move(src, dst, 0, 1, 0, 0, 0));
+                        }
+                      
+                        if (dst == enpassant)
+                            add_move(move_list, encode_move(src, dst, 0, 1, 0, 1, 0));
+                    }
+                
+                } else if (piece_type == king) {
+                    int ks = king_square[side];
+            
+                    if (castle & castling_side[side][0]) {
+                      if (board[ks + 1] == e && board[ks + 2] == e) {
+                        if (is_square_attacked(ks, 1 - side) == 0 && is_square_attacked(ks + 1, 1 - side) == 0)
+                            add_move(move_list, encode_move(ks, ks + 2, 0, 0, 0, 0, 1));
+                      }
+                    }
+                    
+                    if (castle & castling_side[side][1]) {
+                      if (board[ks - 1] == e && board[ks - 2] == e && board[ks - 3] == e) {
+                        if (is_square_attacked(ks, 1 - side) == 0 &&
+                            is_square_attacked(ks - 1, 1 - side) == 0)
+                            add_move(move_list, encode_move(ks, ks - 2, 0, 0, 0, 0, 1));
+                      }
+                    }
+                }
+                
+                if (piece_type != pawn) {
+                    int slider = piece_type & 0x04;
+                    for (int d = 0; d < offset_length[piece_type]; d++) {
+                      int dst = src;
+                      do {
+                        dst += move_offsets[piece_type][d];
+                        if (dst & 0x88) break;
+                        int dst_piece = board[dst];
+                        if (dst_piece != e) {
+                          if ((dst_piece >> 3) != side)
+                              add_move(move_list, encode_move(src, dst, 0, 1, 0, 0, 0));
+                          
+                          break;
+                        }
+                        
+                        add_move(move_list, encode_move(src, dst, 0, 0, 0, 0, 0));
+                      } while (slider);
                     }
                 }
             }
