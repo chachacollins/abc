@@ -1,2 +1,2 @@
 all:
-	gcc -Ofast *.c -o abc.exe
+	gcc -Ofast -flto *.c -o abc.exe

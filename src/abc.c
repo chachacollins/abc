@@ -15,86 +15,7 @@
 \************************************************/
 
 // headers
-#include <stdio.h>
-#include <string.h>
-#ifdef WIN64
-#include "windows.h"
-#else
-#include "sys/time.h"
-#include "sys/select.h"
-#include "string.h"
-#endif
-
-// FEN dedug positions
-#define start_position "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 "
-#define tricky_position "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 "
-#define killer_position "rnbqkb1r/pp1p1pPp/8/2p1pP2/1P1P4/3P3P/P1P1P3/RNBQKBNR w KQkq e6 0 1"
-#define cmk_position "r2q1rk1/ppp2ppp/2n1bn2/2b1p3/3pP3/3P1NPP/PPP1NPB1/R1BQ1RK1 b - - 0 9 "
-
-
-// square encoding
-enum squares {
-    a8 = 0,   b8, c8, d8, e8, f8, g8, h8,
-    a7 = 16,  b7, c7, d7, e7, f7, g7, h7,
-    a6 = 32,  b6, c6, d6, e6, f6, g6, h6,
-    a5 = 48,  b5, c5, d5, e5, f5, g5, h5,
-    a4 = 64,  b4, c4, d4, e4, f4, g4, h4,
-    a3 = 80,  b3, c3, d3, e3, f3, g3, h3,
-    a2 = 96,  b2, c2, d2, e2, f2, g2, h2,
-    a1 = 112, b1, c1, d1, e1, f1, g1, h1, no_sq
-};
-
-// capture flags
-enum capture_flags {all_moves, only_captures};
-
-// castling binary representation
-//
-//  bin  dec
-// 0001    1  white king can castle to the king side
-// 0010    2  white king can castle to the queen side
-// 0100    4  black king can castle to the king side
-// 1000    8  black king can castle to the queen side
-//
-// examples
-// 1111       both sides an castle both directions
-// 1001       black king => queen side
-//            white king => king side
-
-// castling writes
-enum castling { KC = 1, QC = 2, kc = 4, qc = 8 };
-
-// sides to move
-enum sides { white, black };
-
-enum piece_types {
-    pawn = 2,
-    knight = 3,
-    bishop = 4,
-    rook = 5,
-    queen = 6,
-    king = 1
-};
-
-// piece encoding
-enum pieces {
-    e = 0,
-    P = 2,
-    N = 3,
-    B = 4,
-    R = 5,
-    Q = 6,
-    K = 1,
-    p = 10,
-    n = 11,
-    b = 12,
-    r = 13,
-    q = 14,
-    k = 9,
-    o = 15
-};
-
-// ascii pieces
-char ascii_pieces[] = ".KPNBRQ--kpnbrq";
+#include "defs.h"
 
 // encode ascii pieces
 int char_pieces[] = {
@@ -124,17 +45,6 @@ int promoted_pieces[] = {
     [n] = 'n',
 };
 
-// material scrore
-
-/*
-    ♙ =   100   = ♙
-    ♘ =   300   = ♙ * 3
-    ♗ =   350   = ♙ * 3 + ♙ * 0.5
-    ♖ =   500   = ♙ * 5
-    ♕ =   1000  = ♙ * 10
-    ♔ =   10000 = ♙ * 100
-    
-*/
 
 int pawn_starting_rank[] = {0x60, 0x10};
 int pawn_promoting_rank[] = {0x00, 0x70};
@@ -143,38 +53,8 @@ int castling_side[2][2] = {
     {4, 8}
 };
  
-int material_score[13] = { // TODO: fix piece order!!!
-      0,      // empty square score
-    100,      // white pawn score
-    300,      // white knight scrore
-    350,      // white bishop score
-    500,      // white rook score
-   1000,      // white queen score
-  10000,      // white king score
-   -100,      // black pawn score
-   -300,      // black knight scrore
-   -350,      // black bishop score
-   -500,      // black rook score
-  -1000,      // black queen score
- -10000,      // black king score
-    
-};
 
-// castling rights
 
-/*
-                             castle   move     in      in
-                              right    map     binary  decimal
-
-        white king  moved:     1111 & 1100  =  1100    12
-  white king's rook moved:     1111 & 1110  =  1110    14
- white queen's rook moved:     1111 & 1101  =  1101    13
-     
-         black king moved:     1111 & 0011  =  1011    3
-  black king's rook moved:     1111 & 1011  =  1011    11
- black queen's rook moved:     1111 & 0111  =  0111    7
-
-*/
 
 int castling_rights[128] = {
      7, 15, 15, 15,  3, 15, 15, 11,  o, o, o, o, o, o, o, o,
@@ -187,17 +67,21 @@ int castling_rights[128] = {
     13, 15, 15, 15, 12, 15, 15, 14,  o, o, o, o, o, o, o, o
 };
 
-enum {
-    UP = -16,
-    RIGHT = +1,
-    DOWN = +16,
-    LEFT = -1,
-};
+
 
 int move_offsets[7][8] = {
-    {0},
-    {UP, RIGHT, DOWN, LEFT, UP + LEFT, UP + RIGHT, DOWN + LEFT, DOWN + RIGHT}, // KING
-    {0}, // PAWN
+    { 0 },
+    {
+        UP,
+        RIGHT,
+        DOWN,
+        LEFT,
+        UP + LEFT,
+        UP + RIGHT,
+        DOWN + LEFT,
+        DOWN + RIGHT
+    },
+    { 0 },
     {UP + UP + LEFT, UP + UP + RIGHT, DOWN + DOWN + LEFT, DOWN + DOWN + RIGHT, LEFT + LEFT + UP, LEFT + LEFT + DOWN, RIGHT + RIGHT + UP, RIGHT + RIGHT + DOWN}, // KNIGHT
     {UP + LEFT, UP + RIGHT, DOWN + LEFT, DOWN + RIGHT}, // BISHOP
     {UP, RIGHT, DOWN, LEFT}, // ROOK
@@ -206,156 +90,26 @@ int move_offsets[7][8] = {
 
 int offset_length[7] = {0, 8, 0, 8, 4, 4, 8};
 
-// pawn positional score
-const int pawn_score[128] = 
-{
-    90,  90,  90,  90,  90,  90,  90,  90,    o, o, o, o, o, o, o, o,
-    30,  30,  30,  40,  40,  30,  30,  30,    o, o, o, o, o, o, o, o,
-    20,  20,  20,  30,  30,  30,  20,  20,    o, o, o, o, o, o, o, o,
-    10,  10,  10,  20,  20,  10,  10,  10,    o, o, o, o, o, o, o, o,
-     5,   5,  10,  20,  20,   5,   5,   5,    o, o, o, o, o, o, o, o,
-     0,   0,   0,   5,   5,   0,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   0,   0, -10, -10,   0,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   0,   0,   0,   0,   0,   0,   0,    o, o, o, o, o, o, o, o
-};
+// PAWN positional score
 
-// knight positional score
-const int knight_score[128] = 
-{
-    -5,   0,   0,   0,   0,   0,   0,  -5,    o, o, o, o, o, o, o, o,
-    -5,   0,   0,  10,  10,   0,   0,  -5,    o, o, o, o, o, o, o, o,
-    -5,   5,  20,  20,  20,  20,   5,  -5,    o, o, o, o, o, o, o, o,
-    -5,  10,  20,  30,  30,  20,  10,  -5,    o, o, o, o, o, o, o, o,
-    -5,  10,  20,  30,  30,  20,  10,  -5,    o, o, o, o, o, o, o, o,
-    -5,   5,  20,  10,  10,  20,   5,  -5,    o, o, o, o, o, o, o, o,
-    -5,   0,   0,   0,   0,   0,   0,  -5,    o, o, o, o, o, o, o, o,
-    -5, -10,   0,   0,   0,   0, -10,  -5,    o, o, o, o, o, o, o, o
-};
-
-// bishop positional score
-const int bishop_score[128] = 
-{
-     0,   0,   0,   0,   0,   0,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   0,   0,   0,   0,   0,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   0,   0,  10,  10,   0,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   0,  10,  20,  20,  10,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   0,  10,  20,  20,  10,   0,   0,    o, o, o, o, o, o, o, o,
-     0,  10,   0,   0,   0,   0,  10,   0,    o, o, o, o, o, o, o, o,
-     0,  30,   0,   0,   0,   0,  30,   0,    o, o, o, o, o, o, o, o,
-     0,   0, -10,   0,   0, -10,   0,   0,    o, o, o, o, o, o, o, o
-
-};
-
-// rook positional score
-const int rook_score[128] =
-{
-    50,  50,  50,  50,  50,  50,  50,  50,    o, o, o, o, o, o, o, o,
-    50,  50,  50,  50,  50,  50,  50,  50,    o, o, o, o, o, o, o, o,
-     0,   0,  10,  20,  20,  10,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   0,  10,  20,  20,  10,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   0,  10,  20,  20,  10,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   0,  10,  20,  20,  10,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   0,  10,  20,  20,  10,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   0,   0,  20,  20,   0,   0,   0,    o, o, o, o, o, o, o, o
-
-};
-
-// king positional score
-const int king_score[128] = 
-{
-     0,   0,   0,   0,   0,   0,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   0,   5,   5,   5,   5,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   5,   5,  10,  10,   5,   5,   0,    o, o, o, o, o, o, o, o,
-     0,   5,  10,  20,  20,  10,   5,   0,    o, o, o, o, o, o, o, o,
-     0,   5,  10,  20,  20,  10,   5,   0,    o, o, o, o, o, o, o, o,
-     0,   0,   5,  10,  10,   5,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   5,   5,  -5,  -5,   0,   5,   0,    o, o, o, o, o, o, o, o,
-     0,   0,   5,   0, -15,   0,  10,   0,    o, o, o, o, o, o, o, o
-
-};
-
-// mirror positional score tables for opposite side
-const int mirror_score[128] =
-{
-	a1, b1, c1, d1, e1, f1, g1, h1,    o, o, o, o, o, o, o, o,
-	a2, b2, c2, d2, e2, f2, g2, h2,    o, o, o, o, o, o, o, o,
-	a3, b3, c3, d3, e3, f3, g3, h3,    o, o, o, o, o, o, o, o,
-	a4, b4, c4, d4, e4, f4, g4, h4,    o, o, o, o, o, o, o, o,
-	a5, b5, c5, d5, e5, f5, g5, h5,    o, o, o, o, o, o, o, o,
-	a6, b6, c6, d6, e6, f6, g6, h6,    o, o, o, o, o, o, o, o,
-	a7, b7, c7, d7, e7, f7, g7, h7,    o, o, o, o, o, o, o, o,
-	a8, b8, c8, d8, e8, f8, g8, h8,    o, o, o, o, o, o, o, o
-};
 
 // chess board representation
-int board[128] = {
-    r, n, b, q, k, b, n, r,  o, o, o, o, o, o, o, o,
-    p, p, p, p, p, p, p, p,  o, o, o, o, o, o, o, o,
-    e, e, e, e, e, e, e, e,  o, o, o, o, o, o, o, o,
-    e, e, e, e, e, e, e, e,  o, o, o, o, o, o, o, o,
-    e, e, e, e, e, e, e, e,  o, o, o, o, o, o, o, o,
-    e, e, e, e, e, e, e, e,  o, o, o, o, o, o, o, o,
-    P, P, P, P, P, P, P, P,  o, o, o, o, o, o, o, o,
-    R, N, B, Q, K, B, N, R,  o, o, o, o, o, o, o, o
-};
+int board[128];
 
 // side to move
-int side = white;
+int side = WHITE;
 
 // enpassant square
 int enpassant = no_sq;
 
-// castling rights (dec 15 => bin 1111 => both kings can castle to both sides)
+// castling rights (dec 15 => bin 1111 => both KINGs can castle to both sides)
 int castle = 15;
 
-// kings' squares
+// KINGs' squares
 int king_square[2] = {e1, e8};
 
-/*
-    Move formatting
-    
-    0000 0000 0000 0000 0111 1111       source square
-    0000 0000 0011 1111 1000 0000       target square
-    0000 0011 1100 0000 0000 0000       promoted piece
-    0000 0100 0000 0000 0000 0000       capture flag
-    0000 1000 0000 0000 0000 0000       double pawn flag
-    0001 0000 0000 0000 0000 0000       enpassant flag
-    0010 0000 0000 0000 0000 0000       castling
 
-*/
 
-// encode move
-#define encode_move(source, target, piece, capture, pawn, enpassant, castling) \
-(                          \
-    (source) |             \
-    (target << 7) |        \
-    (piece << 14) |        \
-    (capture << 18) |      \
-    (pawn << 19) |         \
-    (enpassant << 20) |    \
-    (castling << 21)       \
-)
-
-// decode move's source square
-#define get_move_source(move) (move & 0x7f)
-
-// decode move's target square
-#define get_move_target(move) ((move >> 7) & 0x7f)
-
-// decode move's promoted piece
-#define get_move_piece(move) ((move >> 14) & 0xf)
-
-// decode move's capture flag
-#define get_move_capture(move) ((move >> 18) & 0x1)
-
-// decode move's double pawn push flag
-#define get_move_pawn(move) ((move >> 19) & 0x1)
-
-// decode move's enpassant flag
-#define get_move_enpassant(move) ((move >> 20) & 0x1)
-
-// decode move's castling flag
-#define get_move_castling(move) ((move >> 21) & 0x1)
 
 // convert board square indexes to coordinates
 char *square_to_coords[] = {
@@ -369,20 +123,7 @@ char *square_to_coords[] = {
     "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1", "i1", "j1", "k1", "l1", "m1", "n1", "o1", "p1"
 };
 
-// piece move offsets
-int knight_offsets[8] = {33, 31, 18, 14, -33, -31, -18, -14};
-int bishop_offsets[4] = {15, 17, -15, -17};
-int rook_offsets[4] = {16, -16, 1, -1};
-int king_offsets[8] = {16, -16, 1, -1, 15, 17, -15, -17};
 
-// move list structure
-typedef struct {
-    // move list
-    int moves[256];
-    
-    // move count
-    int count;
-} moves;
 
 
 /***********************************************\
@@ -391,68 +132,12 @@ typedef struct {
 
 \***********************************************/
 
-// print board
-void print_board()
-{
-    // print new line
-    printf("\n");
 
-    // loop over board ranks
-    for (int rank = 0; rank < 8; rank++)
-    {
-        // loop over board files
-        for (int file = 0; file < 16; file++)
-        {
-            // init square
-            int square = rank * 16 + file;
-            
-            // print ranks
-            if (file == 0)
-                printf(" %d  ", 8 - rank);
-            
-            // if square is on board
-            if (!(square & 0x88))
-                // print ASCII pieces on windows
-                printf("%c ", ascii_pieces[board[square]]);
-        }
-        
-        // print new line every time new rank is encountered
-        printf("\n");
-    }
-    
-    // print files
-    printf("\n    a b c d e f g h\n\n");
-    
-    // print board stats
-    printf("    Side:     %s\n", (side == white) ? "white": "black");
-    printf("    Castling:  %c%c%c%c\n", (castle & KC) ? 'K' : '-', 
-                                        (castle & QC) ? 'Q' : '-',
-                                        (castle & kc) ? 'k' : '-',
-                                        (castle & qc) ? 'q' : '-');
-    printf("    Enpassant:   %s\n", (enpassant == no_sq)? "no" : square_to_coords[enpassant]);
-    printf("    King square: %s\n\n", square_to_coords[king_square[side]]);
-}
 
-// print move list
-void print_move_list(moves *move_list)
-{
-    // print table header
-    printf("\n    Move     Capture  Double   Enpass   Castling\n\n");
 
-    // loop over moves in a movelist
-    for (int index = 0; index < move_list->count; index++)
-    {
-        int move = move_list->moves[index];
-        printf("    %s%s", square_to_coords[get_move_source(move)], square_to_coords[get_move_target(move)]);
-        printf("%c    ", get_move_piece(move) ? promoted_pieces[get_move_piece(move)] : ' ');
-        printf("%d        %d        %d        %d\n", get_move_capture(move), get_move_pawn(move), get_move_enpassant(move), get_move_castling(move));
-    }
-    
-    printf("\n    Total moves: %d\n\n", move_list->count);
-}
 
 // reset board
-void reset_board()
+void clear_board()
 {
     // loop over board ranks
     for (int rank = 0; rank < 8; rank++)
@@ -476,109 +161,7 @@ void reset_board()
     enpassant = no_sq;
 }
 
-// parse FEN
-void parse_fen(char *fen)
-{
-    // reset board
-    reset_board();
-    
-    // loop over board ranks
-    for (int rank = 0; rank < 8; rank++)
-    {
-        // loop over board files
-        for (int file = 0; file < 16; file++)
-        {
-            // init square
-            int square = rank * 16 + file;
-        
-            // if square is on board
-            if (!(square & 0x88))
-            {
-                // match pieces
-                if ((*fen >= 'a' && *fen <= 'z') || (*fen >= 'A' && *fen <= 'Z'))
-                {
-                    // set up kings' squares
-                    if (*fen == 'K')
-                        king_square[white] = square;
-                    
-                    else if (*fen == 'k')
-                        king_square[black] = square;
-                    
-                    // set the piece on board
-                    board[square] = char_pieces[*fen];
-                    
-                    // increment FEN pointer
-                    *fen++;
-                }
-                
-                // match empty squares
-                if (*fen >= '0' && *fen <= '9')
-                {
-                    // calculate offset
-                    int offset = *fen - '0';
-                    
-                    // decrement file on empty squares
-                    if (!(board[square]))
-                        file--;
-                    
-                    // skip empty squares
-                    file += offset;
-                    
-                    // increment FEN pointer
-                    *fen++;
-                }
-                
-                // match end of rank
-                if (*fen == '/')
-                    // increment FEN pointer
-                    *fen++;
-                
-            }
-        }
-    }
-    
-    // go to side parsing
-    *fen++;
-    
-    // parse side to move
-    side = (*fen == 'w') ? white : black;
-    
-    // go to castling rights parsing
-    fen += 2;
-    
-    // parse castling rights
-    while (*fen != ' ')
-    {
-        switch(*fen)
-        {
-            case 'K': castle |= KC; break;
-            case 'Q': castle |= QC; break;
-            case 'k': castle |= kc; break;
-            case 'q': castle |= qc; break;
-            case '-': break;
-        }
-        
-        // increment pointer
-        *fen++;
-    }
-    
-    // got to empassant square
-    *fen++;
-    
-    // parse empassant square
-    if (*fen != '-')
-    {
-        // parse enpassant square's file & rank
-        int file = fen[0] - 'a';
-        int rank = 8 - (fen[1] - '0');
-        
-        // set up enpassant square
-        enpassant = rank * 16 + file;
-    }
-    
-    else
-        enpassant = no_sq;   
-}
+
 
 
 /***********************************************\
@@ -587,361 +170,7 @@ void parse_fen(char *fen)
 
 \***********************************************/
 
-// Slower
-/*static inline int is_square_attacked(int square, int color) {
-    for (int piece_type = king; piece_type <= queen; piece_type++) {
-        int piece = piece_type | (color << 3);
-        if (piece_type == pawn) {
-            int direction = 16 * (1 - 2 * color);
-            for (int lr = -1; lr <= 1; lr += 2) {
-                int dst = square + direction + lr;
-                if (!(dst & 0x88) && board[dst] == piece) return 1;
-            }
-        } else {
-            int slider = piece_type & 0x04;
-            for (int d = 0; d < offset_length[piece_type]; d++) {
-                int dst = square;
-                do {
-                    dst += move_offsets[piece_type][d];
-                    if (dst & 0x88) break;
-                    int attacker = board[dst];
-                    if (attacker != e) {
-                        if (attacker == piece) return 1;
-                        break;
-                    }
-                } while (slider);
-            }
-        }
-    } return 0;
-}*/
 
-// Faster
-static inline int is_square_attacked(int square, int color)
-{
-    int colored_queen  = queen | (color << 3);
-    int colored_rook   = rook | (color << 3);
-    int colored_bishop = bishop | (color << 3);
-    int colored_knight = knight | (color << 3);
-    int colored_king   = king | (color << 3);
-    int colored_pawn   = pawn | (color << 3);
-
-    for (int d = 0; d < 4; d++) {
-        int target_square = square;
-        int step = 0;
-        do {
-            target_square += bishop_offsets[d];
-            step++;
-            if (target_square & 0x88) break;
-            int target_piece = board[target_square];
-            if (target_piece == e) continue;
-            if (target_piece == colored_bishop || target_piece == colored_queen) return 1;
-            if (step == 1) {
-                if (target_piece == colored_king) return 1;
-                if (target_piece == colored_pawn && ((1 - 2 * color) ^ bishop_offsets[d]) > 0) return 1;
-            } break;
-        } while (1);
-    }
-
-    for (int d = 0; d < 4; d++) {
-        int target_square = square;
-        int step = 0;
-        do {
-            target_square += rook_offsets[d];
-            step++;
-            if (target_square & 0x88) break;
-            int target_piece = board[target_square];
-            if (target_piece == e) continue;
-            if (target_piece == colored_rook || target_piece == colored_queen) return 1;
-            if (step == 1 && target_piece == colored_king) return 1;
-            break;
-        } while (1);
-    }
-
-    for (int d = 0; d < 8; d++) {
-        int target_square = square + knight_offsets[d];
-        if (target_square & 0x88) continue;
-        if (board[target_square] == colored_knight) return 1;
-    } return 0;
-}
-
-// print attack map
-void print_attacked_squares(int side)
-{
-    // print new line
-    printf("\n");
-    printf("    Attacking side: %s\n\n", !side ? "white" : "black");
-
-    // loop over board ranks
-    for (int rank = 0; rank < 8; rank++)
-    {
-        // loop over board files
-        for (int file = 0; file < 16; file++)
-        {
-            // init square
-            int square = rank * 16 + file;
-            
-            // print ranks
-            if (file == 0)
-                printf(" %d  ", 8 - rank);
-            
-            // if square is on board
-            if (!(square & 0x88))
-                printf("%c ", is_square_attacked(square, side) ? 'x' : '.');
-                
-        }
-        
-        // print new line every time new rank is encountered
-        printf("\n");
-    }
-    
-    printf("\n    a b c d e f g h\n\n");
-}
-
-// populate move list
-static inline void add_move(moves *move_list, int move) {
-    move_list->moves[move_list->count] = move;
-    move_list->count++;
-}
-
-static inline void generate_moves(moves *move_list) {
-    move_list->count = 0;
-    for (int src = 0; src < 128; src++) {
-        if (!(src & 0x88)) {
-            int piece = board[src];
-            int piece_type = piece & 7;
-            
-            if ((piece >> 3) == side) {
-                
-                
-                if (piece_type == pawn) {
-                    int direction = -16 * (1 - 2 * side);
-                    int dst = src + direction;
-                    if ((dst & 0x88) == 0 && board[dst] == e) { 
-                        if ((dst & 0xF0) == pawn_promoting_rank[side]) {
-                            for (int promoted_piece = queen; promoted_piece >= knight; promoted_piece--)
-                                add_move(move_list, encode_move(src, dst, (promoted_piece | (side << 3)), 1, 0, 0, 0));
-                        } else {
-                            add_move(move_list, encode_move(src, dst, 0, 0, 0, 0, 0));
-                            int double_dst = src + direction * 2;
-                            if ((src & 0xF0) == pawn_starting_rank[side] && board[double_dst] == e)
-                                add_move(move_list, encode_move(src, double_dst, 0, 0, 1, 0, 0));
-                        }
-                    }
-                    
-                    for (int lr = -1; lr <= 1; lr += 2) {
-                        dst = src + direction + lr;
-                        if (dst & 0x88) continue;
-                        int dst_piece = board[dst];
-                      
-                        if (dst_piece != e && (dst_piece >> 3) != side) {
-                            if ((dst & 0xF0) == pawn_promoting_rank[side]) {
-                                for (int promoted_piece = queen; promoted_piece >= knight; promoted_piece--)
-                                    add_move(move_list, encode_move(src, dst, (promoted_piece | (side << 3)), 1, 0, 0, 0));
-                            } else add_move(move_list, encode_move(src, dst, 0, 1, 0, 0, 0));
-                        }
-                      
-                        if (dst == enpassant)
-                            add_move(move_list, encode_move(src, dst, 0, 1, 0, 1, 0));
-                    }
-                
-                } else if (piece_type == king) {
-                    int ks = king_square[side];
-            
-                    if (castle & castling_side[side][0]) {
-                      if (board[ks + 1] == e && board[ks + 2] == e) {
-                        if (is_square_attacked(ks, 1 - side) == 0 && is_square_attacked(ks + 1, 1 - side) == 0)
-                            add_move(move_list, encode_move(ks, ks + 2, 0, 0, 0, 0, 1));
-                      }
-                    }
-                    
-                    if (castle & castling_side[side][1]) {
-                      if (board[ks - 1] == e && board[ks - 2] == e && board[ks - 3] == e) {
-                        if (is_square_attacked(ks, 1 - side) == 0 &&
-                            is_square_attacked(ks - 1, 1 - side) == 0)
-                            add_move(move_list, encode_move(ks, ks - 2, 0, 0, 0, 0, 1));
-                      }
-                    }
-                }
-                
-                if (piece_type != pawn) {
-                    int slider = piece_type & 0x04;
-                    for (int d = 0; d < offset_length[piece_type]; d++) {
-                      int dst = src;
-                      do {
-                        dst += move_offsets[piece_type][d];
-                        if (dst & 0x88) break;
-                        int dst_piece = board[dst];
-                        if (dst_piece != e) {
-                          if ((dst_piece >> 3) != side)
-                              add_move(move_list, encode_move(src, dst, 0, 1, 0, 0, 0));
-                          
-                          break;
-                        }
-                        
-                        add_move(move_list, encode_move(src, dst, 0, 0, 0, 0, 0));
-                      } while (slider);
-                    }
-                }
-            }
-        }
-    }
-}
-
-typedef struct {
-    int board[128];
-    int king_square[2];
-    int side;
-    int enpassant;
-    int castle;
-} board_state;
-
-static inline void save_state(board_state *state)
-{
-    memcpy(state->board, board, sizeof(board));
-    memcpy(state->king_square, king_square, sizeof(king_square));
-
-    state->side = side;
-    state->enpassant = enpassant;
-    state->castle = castle;
-}
-
-static inline void restore_state(const board_state *state)
-{
-    memcpy(board, state->board, sizeof(board));
-    memcpy(king_square, state->king_square, sizeof(king_square));
-
-    side = state->side;
-    enpassant = state->enpassant;
-    castle = state->castle;
-}
-
-// copy/restore board position macros
-#define copy_board()                                \
-    int board_copy[128], king_square_copy[2];       \
-    int side_copy, enpassant_copy, castle_copy;     \
-    memcpy(board_copy, board, 512);                 \
-    side_copy = side;                               \
-    enpassant_copy = enpassant;                     \
-    castle_copy = castle;                           \
-    memcpy(king_square_copy, king_square,8);        \
-
-#define take_back()                                 \
-    memcpy(board, board_copy, 512);                 \
-    side = side_copy;                               \
-    enpassant = enpassant_copy;                     \
-    castle = castle_copy;                           \
-    memcpy(king_square, king_square_copy,8);        \
-
-// make move
-static inline int make_move(int move, int capture_flag)
-{
-    // quiet move
-    if (capture_flag == all_moves)
-    {
-        // copy board state
-        //copy_board();
-        board_state state;
-        save_state(&state);
-        
-        // parse move
-        int from_square = get_move_source(move);
-        int to_square = get_move_target(move);
-        int promoted_piece = get_move_piece(move);
-        int enpass = get_move_enpassant(move);
-        int double_push = get_move_pawn(move);
-        int castling = get_move_castling(move);
-        
-        // move piece
-        board[to_square] = board[from_square];
-        board[from_square] = e;
-        
-        // pawn promotion
-        if (promoted_piece)
-            board[to_square] = promoted_piece;
-        
-        // enpassant capture
-        if (enpass)
-            !side ? (board[to_square + 16] = e) : (board[to_square - 16] = e);
-        
-        // reset enpassant square
-        enpassant = no_sq;
-        
-        // double pawn push
-        if (double_push)
-            !side ? (enpassant = to_square + 16) : (enpassant = to_square - 16);
-        
-        // castling
-        if (castling)
-        {
-            // switch target square
-            switch(to_square) {
-                // white castles king side
-                case g1:
-                    board[f1] = board[h1];
-                    board[h1] = e;
-                    break;
-                
-                // white castles queen side
-                case c1:
-                    board[d1] = board[a1];
-                    board[a1] = e;
-                    break;
-               
-               // black castles king side
-                case g8:
-                    board[f8] = board[h8];
-                    board[h8] = e;
-                    break;
-               
-               // black castles queen side
-                case c8:
-                    board[d8] = board[a8];
-                    board[a8] = e;
-                    break;
-            }
-        }
-        
-        // update king square
-        if (board[to_square] == K || board[to_square] == k)
-            king_square[side] = to_square;
-        
-        // update castling rights
-        castle &= castling_rights[from_square];
-        castle &= castling_rights[to_square];
-        
-        // change side
-        side ^= 1;
-        
-        // take move back if king is under the check
-        if (is_square_attacked(!side ? king_square[side ^ 1] : king_square[side ^ 1], side))
-        {
-            // restore board state
-            //take_back();
-            //take_back(move);
-            restore_state(&state);
-            
-            // illegal move
-            return 0;
-        }
-        
-        else
-            // legal move
-            return 1;
-    }
-    
-    // capture move
-    else
-    {
-        // if move is a capture
-        if (get_move_capture(move))
-            // make capture move
-            make_move(move, all_moves);
-        
-        else
-            // move is not a capture
-            return 0;
-    }
-}
 
 /***********************************************\
 
@@ -949,115 +178,7 @@ static inline int make_move(int move, int capture_flag)
 
 \***********************************************/
 
-// count nodes
-long nodes = 0;
 
-int get_time_ms() {
-#ifdef WIN64
-	return GetTickCount ();
-#else
-	struct timeval t;
-	gettimeofday (&t, NULL);
-	return t.tv_sec*1000 + t.tv_usec/1000;
-#endif	
-}
-
-// perft driver
-static inline void perft_driver(int depth)
-{
-    // escape condition
-    if  (!depth)
-    {
-        // count current position
-        nodes++;
-        return;
-    }
-
-    // create move list variable
-    moves move_list[1];
-    
-    // generate moves
-    generate_moves(move_list);
-    
-    // loop over the generated moves
-    for (int move_count = 0; move_count < move_list->count; move_count++)
-    {
-        // copy board state
-        //copy_board();
-        board_state state;
-        save_state(&state);
-        
-        // make only legal moves
-        if (!make_move(move_list->moves[move_count], all_moves))
-            // skip illegal move
-            continue;
-        
-        // recursive call
-        perft_driver(depth - 1);
-        
-        // restore board state
-        //take_back();
-        //take_back(move_list->moves[move_count]);
-        restore_state(&state);
-    }
-}
-
-// perft test
-static inline void perft_test(int depth)
-{
-    printf("\n    Performance test:\n\n");
-    
-    // init start time
-    int start_time = get_time_ms();
-
-    // create move list variable
-    moves move_list[1];
-    
-    // generate moves
-    generate_moves(move_list);
-    
-    // loop over the generated moves
-    for (int move_count = 0; move_count < move_list->count; move_count++)
-    {
-        // copy board state
-        //copy_board();
-        board_state state;
-        save_state(&state);
-        
-        // make only legal moves
-        if (!make_move(move_list->moves[move_count], all_moves))
-            // skip illegal move
-            continue;
-        
-        // cummulative nodes
-        long cum_nodes = nodes;
-        
-        // recursive call
-        perft_driver(depth - 1);
-        
-        // old nodes
-        long old_nodes = nodes - cum_nodes;
-        
-        // restore board state
-        //take_back();
-        //take_back(move_list->moves[move_count]);
-        restore_state(&state);
-        
-        // print current move
-        printf("    move %d: %s%s%c    %ld\n",
-            move_count + 1,
-            square_to_coords[get_move_source(move_list->moves[move_count])],
-            square_to_coords[get_move_target(move_list->moves[move_count])],
-            promoted_pieces[get_move_piece(move_list->moves[move_count])],
-            old_nodes
-        );
-    }
-    
-    // print results
-    printf("\n    Depth: %d", depth);
-    printf("\n    Nodes: %ld", nodes);
-    printf("\n     Time: %d ms\n\n", get_time_ms() - start_time);
-}
 
 
 /***********************************************\
@@ -1067,64 +188,7 @@ static inline void perft_test(int depth)
 \***********************************************/
 
 // evaluation of the position
-static inline int evaluate_position()
-{
-    // init score
-    int score = 0;
-    
-    // loop over board squares
-    for (int square = 0; square < 128; square++)
-    {
-        // make sure square is on board
-        if (!(square & 0x88))
-        {
-            // init piece
-            int piece = board[square];
-            
-            // material score evaluation
-            score += material_score[piece];
-            
-            // pieces evaluation
-			switch(piece)
-			{
-				// white pieces
-				case P: 
-				    // positional score
-				    score += pawn_score[square];
-				    
-				    // double panws penalty
-				    if (board[square - 16] == P)
-				        score -= 100;
-				    
-				    break;
-				        
-				case N: score += knight_score[square]; break;
-				case B: score += bishop_score[square]; break;
-				case R: score += rook_score[square]; break;
-				case K: score += king_score[square]; break;
-				
-				// black pieces
-				case p:
-				    // positional score
-				    score -= pawn_score[mirror_score[square]];
-				    
-				    // double pawns penalty
-				    if (board[square + 16] == p)
-				        score += 100;
-				        
-				    break;
-				case n: score -= knight_score[mirror_score[square]]; break;
-				case b: score -= bishop_score[mirror_score[square]]; break;
-				case r: score -= rook_score[mirror_score[square]]; break;
-				case k: score -= king_score[mirror_score[square]]; break;
-			}
-            
-        }
-    }
 
-    // return positive score for white & negative for black
-    return !side ? score : -score;
-}
 
 
 /***********************************************\
@@ -1292,7 +356,7 @@ static inline int quiescence_search(int alpha, int beta, int depth)
         ply++;
         
         // make only legal moves
-        if (!make_move(move_list->moves[count], only_captures))
+        if (!make_move(move_list->moves[count], ONLY_CAPTURES))
         {
             // decrement ply
             ply--;
@@ -1348,10 +412,10 @@ static inline int negamax_search(int alpha, int beta, int depth)
     // update nodes count
     nodes++;
     
-    // is king in check?
+    // is KING in check?
     int in_check = is_square_attacked(king_square[side], side ^ 1);
     
-    // increase depth if king is in check
+    // increase depth if KING is in check
     if (in_check)
         depth++;
     
@@ -1376,7 +440,7 @@ static inline int negamax_search(int alpha, int beta, int depth)
         ply++;
         
         // make only legal moves
-        if (!make_move(move_list->moves[count], all_moves))
+        if (!make_move(move_list->moves[count], ALL_MOVES))
         {
             // decrement ply
             ply--;
@@ -1495,238 +559,9 @@ int search_position(int depth)
 
 \***********************************************/
 
-// parse move (from UCI)
-int parse_move(char *move_str)
-{
-    // init move list
-	moves move_list[1];
-	
-	// generate moves
-	generate_moves(move_list);
 
-    // parse move string
-	int parse_from = (move_str[0] - 'a') + (8 - (move_str[1] - '0')) * 16;
-	int parse_to = (move_str[2] - 'a') + (8 - (move_str[3] - '0')) * 16;
-	int prom_piece = 0;
-    
-    // init move to encode
-	int move;
-	
-	// loop over generated moves
-	for(int count = 0; count < move_list->count; count++)
-	{
-	    // pick up move
-		move = move_list->moves[count];
-        
-        // if input move is present in the move list
-		if(get_move_source(move) == parse_from && get_move_target(move) == parse_to)
-		{
-		    // init promoted piece
-			prom_piece = get_move_piece(move);
 
-			// if promoted piece is present compare it with promoted piece from user input
-			if(prom_piece)
-			{
-				if((prom_piece == N || prom_piece == n) && move_str[4] == 'n')
-					return move;
-					
-				else if((prom_piece == B || prom_piece == b) && move_str[4] == 'b')
-					return move;
-					
-				else if((prom_piece == R || prom_piece == r) && move_str[4] == 'r')
-					return move;
-					
-				else if((prom_piece == Q || prom_piece == q) && move_str[4] == 'q')
-					return move;
-					
-				continue;
-			}
-            
-            // return move to make on board
-			return move;
-		}
-	}
 
-	// return illegal move
-	return 0;
-}
-
-// input buffer size
-#define inputBuffer (400 * 6)
-
-// UCI driver
-void uci()
-{
-    // init input buffer
-	char line[inputBuffer];
-
-    // print engine info
-	printf("id name chess_0x88\n");
-	printf("id author Code Monkey King\n");
-	printf("uciok\n");
-	
-	// main loop
-	while(1)
-	{
-	    // reset input buffer
-		memset(&line[0], 0, sizeof(line));
-		
-		// flush stdout
-		fflush(stdout);
-		
-		// skip on no user input
-		if(!fgets(line, inputBuffer, stdin))
-			continue;
-	    
-	    // skip on empty user input
-		if(line[0] == '\n')
-			continue;
-	    
-	    // pares "uci" command
-		if (!strncmp(line, "uci", 3))
-		{
-		    // print engine info
-			printf("id name chess_0x88\n");
-			printf("id author Code Monkey King\n");
-			printf("uciok\n");
-		}
-		
-		// parse "isready" command
-		else if(!strncmp(line, "isready", 7))
-		{
-		    // return engine is ready
-			printf("readyok\n");
-			continue;
-		}
-		
-		// parse "ucinewgame" command
-		else if (!strncmp(line, "ucinewgame", 10))
-		{
-		    // init board with initial position
-			parse_fen(start_position);
-		}
-		
-		// parse GUI input moves after initial position
-		else if(!strncmp(line, "position startpos moves", 23))
-		{
-			// init board with initial position
-			parse_fen(start_position);
-			print_board();
-			
-			// init move string
-			char *moves = line;
-			
-			// init offset where the moves start
-			moves += 23;
-			
-			// init character counter
-			int countChar = -1;
-			
-			// loop over move strings
-			while(*moves)
-			{
-			    // pick next move in the GUI input
-				if(*moves == ' ')
-				{
-				    // go to next move
-					*moves++;
-					
-					// parse move and make it on board
-					make_move(parse_move(moves), all_moves);
-				}
-				
-				// go to next move
-				*moves++;
-			}
-		}
-		
-		// parse initial position
-		else if(!strncmp(line, "position startpos", 17))
-		{
-		    // init board with initial position
-			parse_fen(start_position);
-			print_board();
-		}
-		
-		// init board from FEN
-		else if(!strncmp(line, "position fen", 12))
-		{
-		    // parse FEN input
-			char *fen = line;
-			fen += 13;
-			
-			// init board with current FEN
-			parse_fen(fen);
-			
-			// parse moves after "position fen" command
-			char *moves = line;
-			
-			// parse "moves" command after "position fen"
-			while(strncmp(moves, "moves", 5))
-			{
-			    // increment moves' string pointer
-				*moves++;
-				
-				// break when no more moves available
-				if(*moves == '\0')
-					break;
-			}
-			
-			// go to moves
-			moves += 4;
-			
-			// parse moves
-			if(*moves == 's')
-			{
-			    // init character counter
-				int countChar = -1;
-			    
-			    // loop over input moves
-				while(*moves)
-				{
-				    // pick up next move
-					if(*moves == ' ')
-					{
-					    // go to next move
-						*moves++;
-						
-						// parse current move and make it on board
-						make_move(parse_move(moves), all_moves);
-					}
-				    
-				    // go to next move
-					*moves++;
-				}
-			}
-			
-			// print position
-			print_board();
-		}
-		
-		// parse fixed depth "go" command
-		else if (!strncmp(line, "go depth", 8))
-		{
-		    // parse "go" command
-			char *go = line;
-			go += 9;
-			
-			// parse depth
-			int depth = *go - '0';
-			
-			// search fixed depth
-			search_position(depth);
-		}
-		
-		// use fixed depth 3 for all the other modes but fixed depth, e.g. in blitz mode
-		else if (!strncmp(line, "go", 2))
-			// search 6 ply
-			search_position(6);
-		
-		// parse "quit" command
-		else if(!strncmp(line, "quit", 4))
-			break;
-	}
-}
 
 
 /***********************************************\
@@ -1741,7 +576,7 @@ int main()
     // run engine in UCI mode
     //uci();
     
-    parse_fen(tricky_position);
+    set_board(tricky_position);
     print_board();
     perft_test(5);
     
