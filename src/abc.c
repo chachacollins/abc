@@ -703,227 +703,6 @@ static inline void add_move(moves *move_list, int move) {
     move_list->count++;
 }
 
-
-// move generator
-/*static inline void generate_moves(moves *move_list)
-{
-    move_list->count = 0;
-    for (int square = 0; square < 128; square++) {
-        if (!(square & 0x88)) {
-            if (!side) {
-                if (board[square] == P) {
-                    int to_square = square - 16;
-                    if (!(to_square & 0x88) && !board[to_square]) {   
-                        if (square >= a7 && square <= h7) {
-                            add_move(move_list, encode_move(square, to_square, Q, 0, 0, 0, 0));
-                            add_move(move_list, encode_move(square, to_square, R, 0, 0, 0, 0));
-                            add_move(move_list, encode_move(square, to_square, B, 0, 0, 0, 0));
-                            add_move(move_list, encode_move(square, to_square, N, 0, 0, 0, 0));                            
-                        } else {
-                            add_move(move_list, encode_move(square, to_square, 0, 0, 0, 0, 0));
-                            if ((square >= a2 && square <= h2) && !board[square - 32])
-                                add_move(move_list, encode_move(square, square - 32, 0, 0, 1, 0, 0));
-                        }
-                    }
-                    
-                    for (int index = 0; index < 4; index++) {
-                        int pawn_offset = bishop_offsets[index];
-                        if (pawn_offset < 0) {
-                            int to_square = square + pawn_offset;
-                            if (!(to_square & 0x88)) {
-                                if (
-                                     (square >= a7 && square <= h7) &&
-                                     (board[to_square] >= k && board[to_square] <= q)
-                                   )
-                                {
-                                    add_move(move_list, encode_move(square, to_square, Q, 1, 0, 0, 0));
-                                    add_move(move_list, encode_move(square, to_square, R, 1, 0, 0, 0));
-                                    add_move(move_list, encode_move(square, to_square, B, 1, 0, 0, 0));
-                                    add_move(move_list, encode_move(square, to_square, N, 1, 0, 0, 0));
-                                } else {
-                                    if (board[to_square] >= k && board[to_square] <= q)
-                                        add_move(move_list, encode_move(square, to_square, 0, 1, 0, 0, 0));
-                                    if (to_square == enpassant)
-                                        add_move(move_list, encode_move(square, to_square, 0, 1, 0, 1, 0));
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                if (board[square] == K) {
-                    if (castle & KC) {
-                        if (!board[f1] && !board[g1]) {
-                            if (!is_square_attacked(e1, black) && !is_square_attacked(f1, black))
-                                add_move(move_list, encode_move(e1, g1, 0, 0, 0, 0, 1));
-                        }
-                    }
-                    
-                    if (castle & QC)
-                    {
-                        if (!board[d1] && !board[b1] && !board[c1])
-                        {
-                            if (!is_square_attacked(e1, black) && !is_square_attacked(d1, black))
-                                add_move(move_list, encode_move(e1, c1, 0, 0, 0, 0, 1));
-                        }
-                    }
-                }
-            }
-            
-            else {
-                if (board[square] == p) {
-                    int to_square = square + 16;
-                    if (!(to_square & 0x88) && !board[to_square]) {   
-                        if (square >= a2 && square <= h2)
-                        {
-                            add_move(move_list, encode_move(square, to_square, q, 0, 0, 0, 0));
-                            add_move(move_list, encode_move(square, to_square, r, 0, 0, 0, 0));
-                            add_move(move_list, encode_move(square, to_square, b, 0, 0, 0, 0));
-                            add_move(move_list, encode_move(square, to_square, n, 0, 0, 0, 0));
-                        } else {
-                            add_move(move_list, encode_move(square, to_square, 0, 0, 0, 0, 0));
-                            if ((square >= a7 && square <= h7) && !board[square + 32])
-                                add_move(move_list, encode_move(square, square + 32, 0, 0, 1, 0, 0));
-                        }
-                    }
-                    
-                    for (int index = 0; index < 4; index++) {
-                        int pawn_offset = bishop_offsets[index];
-                        if (pawn_offset > 0) {
-                            int to_square = square + pawn_offset;
-                            if (!(to_square & 0x88)) {
-                                if (
-                                     (square >= a2 && square <= h2) &&
-                                     (board[to_square] >= 1 && board[to_square] <= 6)
-                                   )
-                                {
-                                    add_move(move_list, encode_move(square, to_square, q, 1, 0, 0, 0));
-                                    add_move(move_list, encode_move(square, to_square, r, 1, 0, 0, 0));
-                                    add_move(move_list, encode_move(square, to_square, b, 1, 0, 0, 0));
-                                    add_move(move_list, encode_move(square, to_square, n, 1, 0, 0, 0));
-                                }
-                                
-                                else
-                                {
-                                    if (board[to_square] >= 1 && board[to_square] <= 6)
-                                        add_move(move_list, encode_move(square, to_square, 0, 1, 0, 0, 0));
-                                    if (to_square == enpassant)
-                                        add_move(move_list, encode_move(square, to_square, 0, 1, 0, 1, 0));
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                if (board[square] == k) {
-                    if (castle & kc) {
-                        if (!board[f8] && !board[g8]) {
-                            if (!is_square_attacked(e8, white) && !is_square_attacked(f8, white))
-                                add_move(move_list, encode_move(e8, g8, 0, 0, 0, 0, 1));
-                        }
-                    }
-                    
-                    if (castle & qc) {
-                        if (!board[d8] && !board[b8] && !board[c8])
-                        {
-                            if (!is_square_attacked(e8, white) && !is_square_attacked(d8, white))
-                                add_move(move_list, encode_move(e8, c8, 0, 0, 0, 0, 1));
-                        }
-                    }
-                }
-            }
-            
-            if (!side ? board[square] == N : board[square] == n) {
-                for (int index = 0; index < 8; index++) {
-                    int to_square = square + knight_offsets[index];
-                    int piece = board[to_square];
-                    if (!(to_square & 0x88)) {
-                        if (
-                             !side ?
-                             (!piece || (piece >= k && piece <= q)) : 
-                             (!piece || (piece >= K && piece <= Q))
-                           )
-                        {
-                            if (piece)
-                                add_move(move_list, encode_move(square, to_square, 0, 1, 0, 0, 0));
-                            else
-                                add_move(move_list, encode_move(square, to_square, 0, 0, 0, 0, 0));
-                        }
-                    }
-                }
-            }
-            
-            if (!side ? board[square] == K : board[square] == k) {
-                for (int index = 0; index < 8; index++) {
-                    int to_square = square + king_offsets[index];
-                    int piece = board[to_square];
-                    if (!(to_square & 0x88))
-                    {
-                        if (
-                             !side ?
-                             (!piece || (piece >= k && piece <= q)) : 
-                             (!piece || (piece >= K && piece <= Q))
-                           )
-                        {
-                            if (piece)
-                                add_move(move_list, encode_move(square, to_square, 0, 1, 0, 0, 0));
-                            else
-                                add_move(move_list, encode_move(square, to_square, 0, 0, 0, 0, 0));
-                        }
-                    }
-                }
-            }
-            
-            if (
-                 !side ?
-                 (board[square] == B) || (board[square] == Q) :
-                 (board[square] == b) || (board[square] == q)
-               )
-            {
-                for (int index = 0; index < 4; index++) {
-                    int to_square = square + bishop_offsets[index];
-                    while (!(to_square & 0x88)) {
-                        int piece = board[to_square];
-                        if (!side ? (piece >= K && piece <= Q) : ((piece >= k && piece <= q)))
-                            break;
-                        if (!side ? (piece >= k && piece <= q) : ((piece >= K && piece <= Q))) {
-                            add_move(move_list, encode_move(square, to_square, 0, 1, 0, 0, 0));
-                            break;
-                        }
-                        if (!piece)
-                            add_move(move_list, encode_move(square, to_square, 0, 0, 0, 0, 0));
-                        to_square += bishop_offsets[index];
-                    }
-                }
-            }
-            
-            if (
-                 !side ?
-                 (board[square] == R) || (board[square] == Q) :
-                 (board[square] == r) || (board[square] == q)
-               )
-            {
-                for (int index = 0; index < 4; index++) {
-                    int to_square = square + rook_offsets[index];
-                    while (!(to_square & 0x88)) {
-                        int piece = board[to_square];
-                        if (!side ? (piece >= K && piece <= Q) : ((piece >= k && piece <= q)))
-                            break;
-                        if (!side ? (piece >= k && piece <= q) : ((piece >= K && piece <= Q)))
-                        {
-                            add_move(move_list, encode_move(square, to_square, 0, 1, 0, 0, 0));
-                            break;
-                        }
-                        if (!piece)
-                            add_move(move_list, encode_move(square, to_square, 0, 0, 0, 0, 0));
-                        to_square += rook_offsets[index];
-                    }
-                }
-            }
-        }
-    }
-}*/
-
 static inline void generate_moves(moves *move_list) {
     move_list->count = 0;
     for (int src = 0; src < 128; src++) {
@@ -1008,6 +787,34 @@ static inline void generate_moves(moves *move_list) {
     }
 }
 
+typedef struct {
+    int board[128];
+    int king_square[2];
+    int side;
+    int enpassant;
+    int castle;
+} board_state;
+
+static inline void save_state(board_state *state)
+{
+    memcpy(state->board, board, sizeof(board));
+    memcpy(state->king_square, king_square, sizeof(king_square));
+
+    state->side = side;
+    state->enpassant = enpassant;
+    state->castle = castle;
+}
+
+static inline void restore_state(const board_state *state)
+{
+    memcpy(board, state->board, sizeof(board));
+    memcpy(king_square, state->king_square, sizeof(king_square));
+
+    side = state->side;
+    enpassant = state->enpassant;
+    castle = state->castle;
+}
+
 // copy/restore board position macros
 #define copy_board()                                \
     int board_copy[128], king_square_copy[2];       \
@@ -1032,7 +839,9 @@ static inline int make_move(int move, int capture_flag)
     if (capture_flag == all_moves)
     {
         // copy board state
-        copy_board();
+        //copy_board();
+        board_state state;
+        save_state(&state);
         
         // parse move
         int from_square = get_move_source(move);
@@ -1107,7 +916,9 @@ static inline int make_move(int move, int capture_flag)
         if (is_square_attacked(!side ? king_square[side ^ 1] : king_square[side ^ 1], side))
         {
             // restore board state
-            take_back();
+            //take_back();
+            //take_back(move);
+            restore_state(&state);
             
             // illegal move
             return 0;
@@ -1131,7 +942,6 @@ static inline int make_move(int move, int capture_flag)
             return 0;
     }
 }
-
 
 /***********************************************\
 
@@ -1173,7 +983,9 @@ static inline void perft_driver(int depth)
     for (int move_count = 0; move_count < move_list->count; move_count++)
     {
         // copy board state
-        copy_board();
+        //copy_board();
+        board_state state;
+        save_state(&state);
         
         // make only legal moves
         if (!make_move(move_list->moves[move_count], all_moves))
@@ -1184,7 +996,9 @@ static inline void perft_driver(int depth)
         perft_driver(depth - 1);
         
         // restore board state
-        take_back();
+        //take_back();
+        //take_back(move_list->moves[move_count]);
+        restore_state(&state);
     }
 }
 
@@ -1206,7 +1020,9 @@ static inline void perft_test(int depth)
     for (int move_count = 0; move_count < move_list->count; move_count++)
     {
         // copy board state
-        copy_board();
+        //copy_board();
+        board_state state;
+        save_state(&state);
         
         // make only legal moves
         if (!make_move(move_list->moves[move_count], all_moves))
@@ -1223,7 +1039,9 @@ static inline void perft_test(int depth)
         long old_nodes = nodes - cum_nodes;
         
         // restore board state
-        take_back();
+        //take_back();
+        //take_back(move_list->moves[move_count]);
+        restore_state(&state);
         
         // print current move
         printf("    move %d: %s%s%c    %ld\n",
@@ -1466,7 +1284,9 @@ static inline int quiescence_search(int alpha, int beta, int depth)
     for (int count = 0; count < move_list->count; count++)
     {      
         // copy board state
-        copy_board();
+        //copy_board();
+        board_state state;
+        save_state(&state);
         
         // increment ply
         ply++;
@@ -1485,7 +1305,9 @@ static inline int quiescence_search(int alpha, int beta, int depth)
         int score = -quiescence_search(-beta, -alpha, depth);
         
         // restore board state
-        take_back();
+        //take_back();
+        //take_back(move_list->moves[count]);
+        restore_state(&state);
         
         // decrement ply
         ply--;
@@ -1546,7 +1368,9 @@ static inline int negamax_search(int alpha, int beta, int depth)
     for (int count = 0; count < move_list->count; count++)
     {
         // copy board state
-        copy_board();
+        //copy_board();
+        board_state state;
+        save_state(&state);
         
         // increment ply
         ply++;
@@ -1568,7 +1392,9 @@ static inline int negamax_search(int alpha, int beta, int depth)
         int score = -negamax_search(-beta, -alpha, depth - 1);
         
         // restore board state
-        take_back();
+        //take_back();
+        //take_back(move_list->moves[count]);
+        restore_state(&state);
         
         // decrement ply
         ply--;
