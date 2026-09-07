@@ -11,6 +11,7 @@
     #include "string.h"
 #endif
 
+#define inputBuffer (400 * 6)
 #define start_position "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 "
 #define encode_move(source, target, piece, capture, PAWN, enpassant, castling) \
 (                          \
@@ -43,34 +44,33 @@ enum types {
 };
 
 enum pieces {
-    e = 0,
-    K = 1,
-    P = 2,
-    N = 3,
-    B = 4,
-    R = 5,
-    Q = 6,
-    k = 9,
-    p = 10,
-    n = 11,
-    b = 12,
-    r = 13,
-    q = 14,
-    o = 15
+    EMPTY = 0,
+    WK = 1,
+    WP = 2,
+    WN = 3,
+    WB = 4,
+    WR = 5,
+    WQ = 6,
+    BK = 9,
+    BP = 10,
+    BN = 11,
+    BB = 12,
+    BR = 13,
+    BQ = 14
 };
 
 enum squares {
-    a8 = 0,   b8, c8, d8, e8, f8, g8, h8,
-    a7 = 16,  b7, c7, d7, e7, f7, g7, h7,
-    a6 = 32,  b6, c6, d6, e6, f6, g6, h6,
-    a5 = 48,  b5, c5, d5, e5, f5, g5, h5,
-    a4 = 64,  b4, c4, d4, e4, f4, g4, h4,
-    a3 = 80,  b3, c3, d3, e3, f3, g3, h3,
-    a2 = 96,  b2, c2, d2, e2, f2, g2, h2,
-    a1 = 112, b1, c1, d1, e1, f1, g1, h1, no_sq
+    A8 = 0,   B8, C8, D8, E8, F8, G8, H8,
+    A7 = 16,  B7, C7, D7, E7, F7, G7, H7,
+    A6 = 32,  B6, C6, D6, E6, F6, G6, H6,
+    A5 = 48,  B5, C5, D5, E5, F5, G5, H5,
+    A4 = 64,  B4, C4, D4, E4, F4, G4, H4,
+    A3 = 80,  B3, C3, D3, E3, F3, G3, H3,
+    A2 = 96,  B2, C2, D2, E2, F2, G2, H2,
+    A1 = 112, B1, C1, D1, E1, F1, G1, H1, NONE
 };
 
-enum castling { KC = 1, QC = 2, kc = 4, qc = 8 };
+enum castling { WKC = 1, WQC = 2, BKC = 4, BQC = 8 };
 
 enum capture_flags {ALL_MOVES, ONLY_CAPTURES};
 

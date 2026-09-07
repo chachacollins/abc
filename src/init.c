@@ -12,13 +12,13 @@ char *square_to_coords[] = {
 };
 
 int char_pieces[] = {
-    ['P'] = P, ['N'] = N, ['B'] = B, ['R'] = R, ['Q'] = Q, ['K'] = K,
-    ['p'] = p, ['n'] = n, ['b'] = b, ['r'] = r, ['q'] = q, ['k'] = k
+    ['P'] = WP, ['N'] = WN, ['B'] = WB, ['R'] = WR, ['Q'] = WQ, ['K'] = WK,
+    ['p'] = BP, ['n'] = BN, ['b'] = BB, ['r'] = BR, ['q'] = BQ, ['k'] = BK
 };
 
 int promoted_pieces[] = {
-    [Q] = 'q', [R] = 'r', [B] = 'b', [N] = 'n',
-    [q] = 'q', [r] = 'r', [b] = 'b', [n] = 'n'
+    [WQ] = 'q', [WR] = 'r', [WB] = 'b', [WN] = 'n',
+    [BQ] = 'q', [BR] = 'r', [BB] = 'b', [BN] = 'n'
 };
 
 int move_offsets[7][8] = {
@@ -29,14 +29,14 @@ int move_offsets[7][8] = {
 };
 
 int castling_rights[128] = {
-     7, 15, 15, 15,  3, 15, 15, 11,  o, o, o, o, o, o, o, o,
-    15, 15, 15, 15, 15, 15, 15, 15,  o, o, o, o, o, o, o, o,
-    15, 15, 15, 15, 15, 15, 15, 15,  o, o, o, o, o, o, o, o,
-    15, 15, 15, 15, 15, 15, 15, 15,  o, o, o, o, o, o, o, o,
-    15, 15, 15, 15, 15, 15, 15, 15,  o, o, o, o, o, o, o, o,
-    15, 15, 15, 15, 15, 15, 15, 15,  o, o, o, o, o, o, o, o,
-    15, 15, 15, 15, 15, 15, 15, 15,  o, o, o, o, o, o, o, o,
-    13, 15, 15, 15, 12, 15, 15, 14,  o, o, o, o, o, o, o, o
+     7, 15, 15, 15,  3, 15, 15, 11,  NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    15, 15, 15, 15, 15, 15, 15, 15,  NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    15, 15, 15, 15, 15, 15, 15, 15,  NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    15, 15, 15, 15, 15, 15, 15, 15,  NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    15, 15, 15, 15, 15, 15, 15, 15,  NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    15, 15, 15, 15, 15, 15, 15, 15,  NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    15, 15, 15, 15, 15, 15, 15, 15,  NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    13, 15, 15, 15, 12, 15, 15, 14,  NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE
 };
 
 const int material_score[13] = { // TODO: fix piece order!!!
@@ -57,72 +57,72 @@ const int material_score[13] = { // TODO: fix piece order!!!
 };
 
 const int pawn_score[128] =  {
-    90,  90,  90,  90,  90,  90,  90,  90,    o, o, o, o, o, o, o, o,
-    30,  30,  30,  40,  40,  30,  30,  30,    o, o, o, o, o, o, o, o,
-    20,  20,  20,  30,  30,  30,  20,  20,    o, o, o, o, o, o, o, o,
-    10,  10,  10,  20,  20,  10,  10,  10,    o, o, o, o, o, o, o, o,
-     5,   5,  10,  20,  20,   5,   5,   5,    o, o, o, o, o, o, o, o,
-     0,   0,   0,   5,   5,   0,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   0,   0, -10, -10,   0,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   0,   0,   0,   0,   0,   0,   0,    o, o, o, o, o, o, o, o
+    90,  90,  90,  90,  90,  90,  90,  90,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    30,  30,  30,  40,  40,  30,  30,  30,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    20,  20,  20,  30,  30,  30,  20,  20,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    10,  10,  10,  20,  20,  10,  10,  10,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     5,   5,  10,  20,  20,   5,   5,   5,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     0,   0,   0,   5,   5,   0,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     0,   0,   0, -10, -10,   0,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     0,   0,   0,   0,   0,   0,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE
 };
 
 const int knight_score[128] =  {
-    -5,   0,   0,   0,   0,   0,   0,  -5,    o, o, o, o, o, o, o, o,
-    -5,   0,   0,  10,  10,   0,   0,  -5,    o, o, o, o, o, o, o, o,
-    -5,   5,  20,  20,  20,  20,   5,  -5,    o, o, o, o, o, o, o, o,
-    -5,  10,  20,  30,  30,  20,  10,  -5,    o, o, o, o, o, o, o, o,
-    -5,  10,  20,  30,  30,  20,  10,  -5,    o, o, o, o, o, o, o, o,
-    -5,   5,  20,  10,  10,  20,   5,  -5,    o, o, o, o, o, o, o, o,
-    -5,   0,   0,   0,   0,   0,   0,  -5,    o, o, o, o, o, o, o, o,
-    -5, -10,   0,   0,   0,   0, -10,  -5,    o, o, o, o, o, o, o, o
+    -5,   0,   0,   0,   0,   0,   0,  -5,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -5,   0,   0,  10,  10,   0,   0,  -5,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -5,   5,  20,  20,  20,  20,   5,  -5,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -5,  10,  20,  30,  30,  20,  10,  -5,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -5,  10,  20,  30,  30,  20,  10,  -5,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -5,   5,  20,  10,  10,  20,   5,  -5,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -5,   0,   0,   0,   0,   0,   0,  -5,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -5, -10,   0,   0,   0,   0, -10,  -5,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE
 };
 
 const int bishop_score[128] =  {
-     0,   0,   0,   0,   0,   0,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   0,   0,   0,   0,   0,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   0,   0,  10,  10,   0,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   0,  10,  20,  20,  10,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   0,  10,  20,  20,  10,   0,   0,    o, o, o, o, o, o, o, o,
-     0,  10,   0,   0,   0,   0,  10,   0,    o, o, o, o, o, o, o, o,
-     0,  30,   0,   0,   0,   0,  30,   0,    o, o, o, o, o, o, o, o,
-     0,   0, -10,   0,   0, -10,   0,   0,    o, o, o, o, o, o, o, o
+     0,   0,   0,   0,   0,   0,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     0,   0,   0,   0,   0,   0,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     0,   0,   0,  10,  10,   0,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     0,   0,  10,  20,  20,  10,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     0,   0,  10,  20,  20,  10,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     0,  10,   0,   0,   0,   0,  10,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     0,  30,   0,   0,   0,   0,  30,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     0,   0, -10,   0,   0, -10,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE
 
 };
 
 const int rook_score[128] = {
-    50,  50,  50,  50,  50,  50,  50,  50,    o, o, o, o, o, o, o, o,
-    50,  50,  50,  50,  50,  50,  50,  50,    o, o, o, o, o, o, o, o,
-     0,   0,  10,  20,  20,  10,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   0,  10,  20,  20,  10,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   0,  10,  20,  20,  10,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   0,  10,  20,  20,  10,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   0,  10,  20,  20,  10,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   0,   0,  20,  20,   0,   0,   0,    o, o, o, o, o, o, o, o
+    50,  50,  50,  50,  50,  50,  50,  50,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    50,  50,  50,  50,  50,  50,  50,  50,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     0,   0,  10,  20,  20,  10,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     0,   0,  10,  20,  20,  10,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     0,   0,  10,  20,  20,  10,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     0,   0,  10,  20,  20,  10,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     0,   0,  10,  20,  20,  10,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     0,   0,   0,  20,  20,   0,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE
 
 };
 
 const int king_score[128] =  {
-     0,   0,   0,   0,   0,   0,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   0,   5,   5,   5,   5,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   5,   5,  10,  10,   5,   5,   0,    o, o, o, o, o, o, o, o,
-     0,   5,  10,  20,  20,  10,   5,   0,    o, o, o, o, o, o, o, o,
-     0,   5,  10,  20,  20,  10,   5,   0,    o, o, o, o, o, o, o, o,
-     0,   0,   5,  10,  10,   5,   0,   0,    o, o, o, o, o, o, o, o,
-     0,   5,   5,  -5,  -5,   0,   5,   0,    o, o, o, o, o, o, o, o,
-     0,   0,   5,   0, -15,   0,  10,   0,    o, o, o, o, o, o, o, o
+     0,   0,   0,   0,   0,   0,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     0,   0,   5,   5,   5,   5,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     0,   5,   5,  10,  10,   5,   5,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     0,   5,  10,  20,  20,  10,   5,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     0,   5,  10,  20,  20,  10,   5,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     0,   0,   5,  10,  10,   5,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     0,   5,   5,  -5,  -5,   0,   5,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     0,   0,   5,   0, -15,   0,  10,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE
 
 };
 
 const int mirror_score[128] = {
-	a1, b1, c1, d1, e1, f1, g1, h1,    o, o, o, o, o, o, o, o,
-	a2, b2, c2, d2, e2, f2, g2, h2,    o, o, o, o, o, o, o, o,
-	a3, b3, c3, d3, e3, f3, g3, h3,    o, o, o, o, o, o, o, o,
-	a4, b4, c4, d4, e4, f4, g4, h4,    o, o, o, o, o, o, o, o,
-	a5, b5, c5, d5, e5, f5, g5, h5,    o, o, o, o, o, o, o, o,
-	a6, b6, c6, d6, e6, f6, g6, h6,    o, o, o, o, o, o, o, o,
-	a7, b7, c7, d7, e7, f7, g7, h7,    o, o, o, o, o, o, o, o,
-	a8, b8, c8, d8, e8, f8, g8, h8,    o, o, o, o, o, o, o, o
+	A1, B1, C1, D1, E1, F1, G1, H1,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+	A2, B2, C2, D2, E2, F2, G2, H2,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+	A3, B3, C3, D3, E3, F3, G3, H3,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+	A4, B4, C4, D4, E4, F4, G4, H4,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+	A5, B5, C5, D5, E5, F5, G5, H5,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+	A6, B6, C6, D6, E6, F6, G6, H6,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+	A7, B7, C7, D7, E7, F7, G7, H7,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+	A8, B8, C8, D8, E8, F8, G8, H8,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE
 };
 
 int offset_length[7] = {0, 8, 0, 8, 4, 4, 8};
@@ -131,6 +131,6 @@ int pawn_starting_rank[] = {0x60, 0x10};
 int pawn_promoting_rank[] = {0x00, 0x70};
 int board[128];
 int side = WHITE;
-int enpassant = no_sq;
+int enpassant = NONE;
 int castle = 15;
-int king_square[2] = {e1, e8};
+int king_square[2] = {E1, E8};

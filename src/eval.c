@@ -7,22 +7,22 @@ int evaluate_position() {
             int piece = board[square];
             score += material_score[piece];
 			switch(piece) {
-				case P: 
+				case WP: 
 				    score += pawn_score[square];
-				    if (board[square - 16] == P) score -= 100;
+				    if (board[square - 16] == WP) score -= 100;
 				    break;
-				case N: score += knight_score[square]; break;
-				case B: score += bishop_score[square]; break;
-				case R: score += rook_score[square]; break;
-				case K: score += king_score[square]; break;
-				case p:
+				case WN: score += knight_score[square]; break;
+				case WB: score += bishop_score[square]; break;
+				case WR: score += rook_score[square]; break;
+				case WK: score += king_score[square]; break;
+				case BP:
 				    score -= pawn_score[mirror_score[square]];
-				    if (board[square + 16] == p) score += 100;
+				    if (board[square + 16] == BP) score += 100;
 				    break;
-				case n: score -= knight_score[mirror_score[square]]; break;
-				case b: score -= bishop_score[mirror_score[square]]; break;
-				case r: score -= rook_score[mirror_score[square]]; break;
-				case k: score -= king_score[mirror_score[square]]; break;
+				case BN: score -= knight_score[mirror_score[square]]; break;
+				case BB: score -= bishop_score[mirror_score[square]]; break;
+				case BR: score -= rook_score[mirror_score[square]]; break;
+				case BK: score -= king_score[mirror_score[square]]; break;
 			}
             
         }

@@ -17,7 +17,7 @@ int is_square_attacked(int square, int color) {
                     dst += move_offsets[piece_type][d];
                     if (dst & 0x88) break;
                     int attacker = board[dst];
-                    if (attacker != e) {
+                    if (attacker != EMPTY) {
                         if (attacker == piece) return 1;
                         break;
                     }
@@ -42,21 +42,21 @@ void generate_moves(moves *move_list) {
                 if (piece_type == PAWN) {
                     int direction = -16 * (1 - 2 * side);
                     int dst = src + direction;
-                    if ((dst & 0x88) == 0 && board[dst] == e) { 
+                    if ((dst & 0x88) == 0 && board[dst] == EMPTY) { 
                         if ((dst & 0xF0) == pawn_promoting_rank[side]) {
                             for (int promoted_piece = QUEEN; promoted_piece >= KNIGHT; promoted_piece--)
                                 add_move(move_list, encode_move(src, dst, (promoted_piece | (side << 3)), 1, 0, 0, 0));
                         } else {
                             add_move(move_list, encode_move(src, dst, 0, 0, 0, 0, 0));
                             int double_dst = src + direction * 2;
-                            if ((src & 0xF0) == pawn_starting_rank[side] && board[double_dst] == e)
+                            if ((src & 0xF0) == pawn_starting_rank[side] && board[double_dst] == EMPTY)
                                 add_move(move_list, encode_move(src, double_dst, 0, 0, 1, 0, 0));
                         }
                     } for (int lr = -1; lr <= 1; lr += 2) {
                         dst = src + direction + lr;
                         if (dst & 0x88) continue;
                         int dst_piece = board[dst];
-                        if (dst_piece != e && (dst_piece >> 3) != side) {
+                        if (dst_piece != EMPTY && (dst_piece >> 3) != side) {
                             if ((dst & 0xF0) == pawn_promoting_rank[side]) {
                                 for (int promoted_piece = QUEEN; promoted_piece >= KNIGHT; promoted_piece--)
                                     add_move(move_list, encode_move(src, dst, (promoted_piece | (side << 3)), 1, 0, 0, 0));
@@ -66,12 +66,12 @@ void generate_moves(moves *move_list) {
                 } else if (piece_type == KING) {
                     int ks = king_square[side];
                     if (castle & castling_side[side][0]) {
-                      if (board[ks + 1] == e && board[ks + 2] == e) {
+                      if (board[ks + 1] == EMPTY && board[ks + 2] == EMPTY) {
                         if (is_square_attacked(ks, 1 - side) == 0 && is_square_attacked(ks + 1, 1 - side) == 0)
                             add_move(move_list, encode_move(ks, ks + 2, 0, 0, 0, 0, 1));
                       }
                     } if (castle & castling_side[side][1]) {
-                      if (board[ks - 1] == e && board[ks - 2] == e && board[ks - 3] == e) {
+                      if (board[ks - 1] == EMPTY && board[ks - 2] == EMPTY && board[ks - 3] == EMPTY) {
                         if (is_square_attacked(ks, 1 - side) == 0 &&
                             is_square_attacked(ks - 1, 1 - side) == 0)
                             add_move(move_list, encode_move(ks, ks - 2, 0, 0, 0, 0, 1));
@@ -85,7 +85,7 @@ void generate_moves(moves *move_list) {
                         dst += move_offsets[piece_type][d];
                         if (dst & 0x88) break;
                         int dst_piece = board[dst];
-                        if (dst_piece != e) {
+                        if (dst_piece != EMPTY) {
                           if ((dst_piece >> 3) != side) add_move(move_list, encode_move(src, dst, 0, 1, 0, 0, 0));
                           break;
                         } add_move(move_list, encode_move(src, dst, 0, 0, 0, 0, 0));
@@ -124,31 +124,31 @@ int make_move(int move, int capture_flag) {
         int double_push = get_move_PAWN(move);
         int castling = get_move_castling(move);
         board[to_square] = board[from_square];
-        board[from_square] = e;
+        board[from_square] = EMPTY;
         if (promoted_piece) board[to_square] = promoted_piece;
-        if (enpass) !side ? (board[to_square + 16] = e) : (board[to_square - 16] = e);
-        enpassant = no_sq;
+        if (enpass) !side ? (board[to_square + 16] = EMPTY) : (board[to_square - 16] = EMPTY);
+        enpassant = NONE;
         if (double_push) !side ? (enpassant = to_square + 16) : (enpassant = to_square - 16);
         if (castling) {
             switch(to_square) {
-                case g1:
-                    board[f1] = board[h1];
-                    board[h1] = e;
+                case G1:
+                    board[F1] = board[H1];
+                    board[H1] = EMPTY;
                     break;
-                case c1:
-                    board[d1] = board[a1];
-                    board[a1] = e;
+                case C1:
+                    board[D1] = board[A1];
+                    board[A1] = EMPTY;
                     break;
-                case g8:
-                    board[f8] = board[h8];
-                    board[h8] = e;
+                case G8:
+                    board[F8] = board[H8];
+                    board[H8] = EMPTY;
                     break;
-                case c8:
-                    board[d8] = board[a8];
-                    board[a8] = e;
+                case C8:
+                    board[D8] = board[A8];
+                    board[A8] = EMPTY;
                     break;
             }
-        } if (board[to_square] == K || board[to_square] == k)
+        } if (board[to_square] == WK || board[to_square] == BK)
             king_square[side] = to_square;
         castle &= castling_rights[from_square];
         castle &= castling_rights[to_square];

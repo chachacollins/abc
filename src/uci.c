@@ -12,17 +12,15 @@ int parse_move(char *move_str) {
 		if(get_move_source(move) == parse_from && get_move_target(move) == parse_to) {
 			prom_piece = get_move_piece(move);
 			if(prom_piece) {
-				if((prom_piece == N || prom_piece == n) && move_str[4] == 'n') return move;
-				else if((prom_piece == B || prom_piece == b) && move_str[4] == 'b') return move;
-				else if((prom_piece == R || prom_piece == r) && move_str[4] == 'r') return move;
-				else if((prom_piece == Q || prom_piece == q) && move_str[4] == 'q') return move;
+				if((prom_piece == WN || prom_piece == BN) && move_str[4] == 'n') return move;
+				else if((prom_piece == WB || prom_piece == BB) && move_str[4] == 'b') return move;
+				else if((prom_piece == WR || prom_piece == BR) && move_str[4] == 'r') return move;
+				else if((prom_piece == WQ || prom_piece == BQ) && move_str[4] == 'q') return move;
 				continue;
 			} return move;
 		}
 	} return 0;
 }
-
-#define inputBuffer (400 * 6)
 
 void uci() {
 	char line[inputBuffer];
