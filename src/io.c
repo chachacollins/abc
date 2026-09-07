@@ -1,7 +1,14 @@
 #include "defs.h"
 
 void set_board(char *fen) {
-    clear_board();
+    for (int rank = 0; rank < 8; rank++) {
+        for (int file = 0; file < 16; file++) {
+            int square = rank * 16 + file;
+            if (!(square & 0x88)) board[square] = e;
+        }
+    } side = -1;
+    castle = 0;
+    enpassant = no_sq;
     for (int rank = 0; rank < 8; rank++) {
         for (int file = 0; file < 16; file++) {
             int square = rank * 16 + file;
@@ -55,14 +62,4 @@ void print_board() {
                                         (castle & qc) ? 'q' : '-');
     printf("    Enpassant:   %s\n", (enpassant == no_sq)? "no" : square_to_coords[enpassant]);
     printf("    King square: %s\n\n", square_to_coords[king_square[side]]);
-}
-
-void print_move_list(moves *move_list) {
-    printf("\n    Move     Capture  Double   Enpass   Castling\n\n");
-    for (int index = 0; index < move_list->count; index++) {
-        int move = move_list->moves[index];
-        printf("    %s%s", square_to_coords[get_move_source(move)], square_to_coords[get_move_target(move)]);
-        printf("%c    ", get_move_piece(move) ? promoted_pieces[get_move_piece(move)] : ' ');
-        printf("%d        %d        %d        %d\n", get_move_capture(move), get_move_PAWN(move), get_move_enpassant(move), get_move_castling(move));
-    } printf("\n    Total moves: %d\n\n", move_list->count);
 }

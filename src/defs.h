@@ -12,10 +12,6 @@
 #endif
 
 #define start_position "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 "
-#define tricky_position "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 "
-#define killer_position "rnbqkb1r/pp1p1pPp/8/2p1pP2/1P1P4/3P3P/P1P1P3/RNBQKBNR w KQkq e6 0 1"
-#define cmk_position "r2q1rk1/ppp2ppp/2n1bn2/2b1p3/3pP3/3P1NPP/PPP1NPB1/R1BQ1RK1 b - - 0 9 "
-
 #define encode_move(source, target, piece, capture, PAWN, enpassant, castling) \
 (                          \
     (source) |             \
@@ -74,13 +70,6 @@ enum squares {
     a1 = 112, b1, c1, d1, e1, f1, g1, h1, no_sq
 };
 
-enum directions {
-    UP = -16,
-    RIGHT = +1,
-    DOWN = +16,
-    LEFT = -1,
-};
-
 enum castling { KC = 1, QC = 2, kc = 4, qc = 8 };
 
 enum capture_flags {ALL_MOVES, ONLY_CAPTURES};
@@ -106,6 +95,15 @@ extern int pawn_promoting_rank[];
 extern int pawn_starting_rank[];
 extern int castling_side[2][2];
 
+extern const int material_score[13]; // TODO: fix piece order!!!
+extern const int pawn_score[128];
+extern const int knight_score[128];
+extern const int bishop_score[128];
+extern const int rook_score[128];
+extern const int queen_score[128];
+extern const int king_score[128];
+extern const int mirror_score[128];
+
 typedef struct {
     int moves[256];
     int count;
@@ -119,11 +117,9 @@ typedef struct {
     int castle;
 } board_state;
 
-extern void clear_board();
 
 extern void set_board(char *fen);
 extern void print_board();
-extern void print_move_list(moves *move_list);
 
 extern void perft_driver(int depth);
 extern void perft_test(int depth);
