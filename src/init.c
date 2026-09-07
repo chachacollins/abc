@@ -134,3 +134,4 @@ int side = WHITE;
 int enpassant = NONE;
 int castle = 15;
 int king_square[2] = {E1, E8};
+long nodes = 0;

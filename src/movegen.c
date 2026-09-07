@@ -5,18 +5,18 @@ int is_square_attacked(int square, int color) {
         int piece = piece_type | (color << 3);
         if (piece_type == PAWN) {
             int direction = 16 * (1 - 2 * color);
-            for (int lr = -1; lr <= 1; lr += 2) {
-                int dst = square + direction + lr;
-                if (!(dst & 0x88) && board[dst] == piece) return 1;
+            for (int left_right = -1; left_right <= 1; left_right += 2) {
+                int target = square + direction + left_right;
+                if (!(target & 0x88) && board[target] == piece) return 1;
             }
         } else {
             int slider = piece_type & 0x04;
             for (int d = 0; d < offset_length[piece_type]; d++) {
-                int dst = square;
+                int target = square;
                 do {
-                    dst += move_offsets[piece_type][d];
-                    if (dst & 0x88) break;
-                    int attacker = board[dst];
+                    target += move_offsets[piece_type][d];
+                    if (target & 0x88) break;
+                    int attacker = board[target];
                     if (attacker != EMPTY) {
                         if (attacker == piece) return 1;
                         break;
@@ -131,22 +131,10 @@ int make_move(int move, int capture_flag) {
         if (double_push) !side ? (enpassant = to_square + 16) : (enpassant = to_square - 16);
         if (castling) {
             switch(to_square) {
-                case G1:
-                    board[F1] = board[H1];
-                    board[H1] = EMPTY;
-                    break;
-                case C1:
-                    board[D1] = board[A1];
-                    board[A1] = EMPTY;
-                    break;
-                case G8:
-                    board[F8] = board[H8];
-                    board[H8] = EMPTY;
-                    break;
-                case C8:
-                    board[D8] = board[A8];
-                    board[A8] = EMPTY;
-                    break;
+                case G1: board[F1] = board[H1]; board[H1] = EMPTY; break;
+                case C1: board[D1] = board[A1]; board[A1] = EMPTY; break;
+                case G8: board[F8] = board[H8]; board[H8] = EMPTY; break;
+                case C8: board[D8] = board[A8]; board[A8] = EMPTY; break;
             }
         } if (board[to_square] == WK || board[to_square] == BK)
             king_square[side] = to_square;

@@ -1,17 +1,5 @@
 #include "defs.h"
 
-long nodes = 0;
-
-int get_time_ms() {
-    #ifdef WIN64
-        return GetTickCount ();
-    #else
-        struct timeval t;
-        gettimeofday (&t, NULL);
-        return t.tv_sec*1000 + t.tv_usec/1000;
-    #endif	
-}
-
 void perft_driver(int depth) {
     if  (!depth) { nodes++; return; }
     moves move_list[1];
