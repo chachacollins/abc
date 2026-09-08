@@ -105,15 +105,14 @@
     extern void restore_position(Position *position);
 
     // Function in "perft.c"
+    extern void perft_driver(int depth);
     extern void perft_test(int depth);
-
-    // Function in "eval.c"
-    extern int evaluate_position();
 
     // Function in "search.c"
     extern int search_position(int depth);
 
     // Function in "uci.c"
+    extern int parse_move(char *move_str);
     extern void uci();
     
     // Function in "misc.c"

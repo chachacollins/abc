@@ -88,5 +88,8 @@ void print_board() {
 
 // Print move
 void print_move(int source, int target, int promoted) {
-    printf("%s%s%c ", square_to_coords[source], square_to_coords[target], promoted_pieces[promoted]);
+    char *src = square_to_coords[source];
+    char *dst = square_to_coords[target];
+    char prom = promoted_pieces[promoted];
+    printf("%s%s%c ", src, dst, prom);
 }
