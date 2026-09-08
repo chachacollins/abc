@@ -30,74 +30,28 @@ int evaluate_position() {
     } return !side ? score : -score;
 }
 
-// score move for move ordering
-static inline int score_move(int move)
-{
-    // PV move
-    if (pv_table[0][ply] == move)
-        // score 20000 ( search it first )
-        return 20000;
- 
-    // init current move score
-    int score;
-    
-    // score MVV LVA (scores 0 for quiete moves)
-    score = mvv_lva[board[get_move_source(move)]][board[get_move_target(move)]];         
-
-    // on capture
-    if (get_move_capture(move))
-    {
-        // add 10000 to current score
-        score += 10000;
-    }
-    
-    // on quiete move
+// Score move for move ordering
+static inline int score_move(int move) {
+    if (pv_table[0][ply] == move) return 20000;
+    int score = mvv_lva[board[get_move_source(move)]][board[get_move_target(move)]];         
+    if (get_move_capture(move)) score += 10000;
     else {
-        // on 1st killer move
-        if (killer_moves[0][ply] == move)
-            // score 9000
-            score = 9000;
-        
-        // on 2nd killer move
-        else if (killer_moves[1][ply] == move)
-            // score 8000
-            score = 8000;
-                      
-        // on history move (previous alpha's best score)
-        else
-            // score with history depth
-            score = history_moves[board[get_move_source(move)]][get_move_target(move)] + 7000;
-    }
-    
-    // return move score
-    return score;
+        if (killer_moves[0][ply] == move) score = 9000;
+        else if (killer_moves[1][ply] == move) score = 8000;
+        else score = history_moves[board[get_move_source(move)]][get_move_target(move)] + 7000;
+    } return score;
 }
 
-static inline void sort_moves(Movelist *moves)
-{
-    // define move scores array
+static inline void sort_moves(Movelist *moves) {
     int move_scores[moves->count];
-    
-    // init move scores array
     for (int count = 0; count < moves->count; count++)
-        // score move
         move_scores[count] = score_move(moves->moves[count]);
-    
-    // loop over current move score
-    for (int current = 0; current < moves->count; current++)
-    {
-        // loop over next move score
-        for (int next = current + 1; next < moves->count; next++)
-        {
-            // order moves descending
-            if (move_scores[current] < move_scores[next])
-            {
-                // swap scores
+    for (int current = 0; current < moves->count; current++) {
+        for (int next = current + 1; next < moves->count; next++) {
+            if (move_scores[current] < move_scores[next]) {
                 int temp_score = move_scores[current];
                 move_scores[current] = move_scores[next];
                 move_scores[next] = temp_score;
-                
-                // swap corresponding moves
                 int temp_move = moves->moves[current];
                 moves->moves[current] = moves->moves[next];
                 moves->moves[next] = temp_move;
@@ -107,210 +61,88 @@ static inline void sort_moves(Movelist *moves)
 }
 
 // quiescence search
-static inline int quiescence_search(int alpha, int beta, int depth)
-{
-    // update nodes count
+static inline int quiescence_search(int alpha, int beta) {
     nodes++;
-    
-    // evaluate position
     int eval = evaluate_position();
-    
-    //  fail hard beta-cutoff
-    if (eval >= beta)
-        return beta;
-
-    // alpha acts like max in MiniMax
-    if (eval > alpha)
-        alpha = eval;
-
-    // create move list variable
+    if (eval >= beta) return beta;
+    if (eval > alpha) alpha = eval;
     Movelist moves[1];
-    
-    // generate moves
     generate_moves(moves);
-    
-    // move ordering
     sort_moves(moves);
-    
-    // loop over the generated moves
-    for (int count = 0; count < moves->count; count++)
-    {      
-        // copy board position
-        //copy_board();
+    for (int count = 0; count < moves->count; count++) {      
         Position position;
-        save_position(&position);
-        
-        
-        // make only legal moves
-        if (!make_move(moves->moves[count], ONLY_CAPTURES))
-        {
-            
-            // skip illegal move
-            continue;
-        }
-        
-        // recursive call
-        int score = -quiescence_search(-beta, -alpha, depth);
-        
-        // restore board position
-        //take_back();
-        //take_back(move_list->moves[count]);
-        restore_position(&position);
-        
-        
-        //  fail hard beta-cutoff
-        if (score >= beta)
-             return beta;
-        
-        // alpha acts like max in MiniMax
-        if (score > alpha)
-            alpha = score;
-    }
-        
-    // return alpha score
-    return alpha;
+        save_position(&position); ply++;
+        if (!make_move(moves->moves[count], ONLY_CAPTURES)) { ply--; continue; }
+        int score = -quiescence_search(-beta, -alpha);
+        restore_position(&position); ply--;
+        if (score >= beta) return beta;
+        if (score > alpha) alpha = score;
+    } return alpha;
 }
 
 // negamax search
-static inline int negamax_search(int alpha, int beta, int depth)
-{       
-    // legal moves
+int negamax_search(int alpha, int beta, int depth) {
     int legal_moves = 0;
-    
-    // best move
-    int best_so_far = 0;
-    
-    // old alpha
     int old_alpha = alpha;
-    
-    // PV length
     pv_length[ply] = ply;
-
-    // escape condition
-    if  (!depth)
-        // search for calm position before evaluation
-        return quiescence_search(alpha, beta, depth);
-
-    // update nodes count
+    if  (!depth) return quiescence_search(alpha, beta);
     nodes++;
-    
-    // is KING in check?
     int in_check = is_square_attacked(king_square[side], side ^ 1);
-    
-    // increase depth if KING is in check
-    if (in_check)
-        depth++;
-    
-    // create move list variable
+    if (in_check) depth++;
     Movelist moves[1];
-    
-    // generate moves
     generate_moves(moves);
-    
-    // move ordering
     sort_moves(moves);
-    
-    // loop over the generated moves
-    for (int count = 0; count < moves->count; count++)
-    {
-        // copy board position
-        //copy_board();
+    for (int count = 0; count < moves->count; count++) {
+        int move = moves->moves[count];
         Position position;
-        save_position(&position);
-        
-        
-        // make only legal moves
-        if (!make_move(moves->moves[count], ALL_MOVES))
-        {
-            
-            // skip illegal move
-            continue;
-        }
-         
-        // increment legal moves
+        save_position(&position); ply++;
+        if (!make_move(move, ALL_MOVES)) { ply--; continue; }
         legal_moves++;
-        
-        // recursive call
         int score = -negamax_search(-beta, -alpha, depth - 1);
-        
-        // restore board position
-        //take_back();
-        //take_back(move_list->moves[count]);
-        restore_position(&position);
-        
-        // decrement ply
-        ply--;
-
-        //  fail hard beta-cutoff
-        if (score >= beta)
-        {
-            // update killer moves
+        restore_position(&position); ply--;
+        if (score >= beta) {
             killer_moves[1][ply] = killer_moves[0][ply];
-            killer_moves[0][ply] = moves->moves[count];
-            
+            killer_moves[0][ply] = move;
             return beta;
-        }
-        
-        // alpha acts like max in MiniMax
-        if (score > alpha)
-        {
-            // update history score
-            history_moves[board[get_move_source(moves->moves[count])]][get_move_target(moves->moves[count])] += depth;
-
-            // set alpha score
+        } else if (score > alpha) {
+            history_moves[board[get_move_source(move)]][get_move_target(move)] += depth;
             alpha = score;
-            
-            // store PV move
-			pv_table[ply][ply] = moves->moves[count];
-			
-			for (int i = ply + 1; i < pv_length[ply + 1]; i++)
-				pv_table[ply][i] = pv_table[ply + 1][i];
-	
+			pv_table[ply][ply] = move;
+			for (int i = ply + 1; i < pv_length[ply + 1]; i++) pv_table[ply][i] = pv_table[ply + 1][i];
 			pv_length[ply] = pv_length[ply + 1];
-            
-            // store current best move
-            if(!ply)
-                best_so_far = moves->moves[count];
         }      
     }
     
-    // if no legal moves
-    if (!legal_moves)
-    {
-        // check mate detection
-        if (in_check)
-            return -49000 + ply;
-        
-        // stalemate detection
-        else
-            return 0;
+    // Checkmate detection
+    if (!legal_moves) {
+        if (in_check) return -49000 + ply;
+        else return 0;
     }
     
-    // return alpha score
+    // Return best score
     return alpha;
 }
+
+// PV  d2d4 g8f6 b1c3 b8c6 e2e4 d7d5
 
 // search position
 int search_position(int depth)
 {
-    // init nodes count
+    // Clear search
     nodes = 0;
+    ply = 0;
+    memset(pv_table, 0, sizeof(pv_table));
+    memset(pv_length, 0, sizeof(pv_length));
+    memset(killer_moves, 0, sizeof(killer_moves));
+    memset(history_moves, 0, sizeof(history_moves));
     
-    // clear PV, killer and history moves
-    memset(pv_table, 0, 16384);  // sizeof(pv_table)
-    memset(killer_moves, 0, 512);  // sizeof(killer_moves)
-    memset(history_moves, 0, 6656);  // sizeof(history_moves)
-    
-    // best score
-    int score;
-    
-    // iterative deepening
+    // Iterative deepening
     for (int current_depth = 1; current_depth <= depth; current_depth++)
     {    
-        // search position with current depth 3
-	    score = negamax_search(-50000, 50000, current_depth);
+        // Search position with current depth
+	    int score = negamax_search(-50000, 50000, current_depth);
         
-        // output best move
+        // Output UCI info
         printf("info score cp %d depth %d nodes %ld pv ", score, current_depth, nodes);
         
         // print PV line

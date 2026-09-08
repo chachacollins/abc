@@ -36,7 +36,7 @@ int parse_move(char *move_str) {
 // UCI protocol
 void uci() {
     // User input
-	char line[2400];
+	char user_input[2400];
 	
     // Engine info
     printf("id name ABC\n");
@@ -46,34 +46,33 @@ void uci() {
     // UCI loop
     while(1) {
         // Handle user input
-		memset(&line[0], 0, sizeof(line));
+		memset(&user_input[0], 0, sizeof(user_input));
 		fflush(stdout);
-		if(!fgets(line, sizeof(line), stdin)) continue;
+		if(!fgets(user_input, sizeof(user_input), stdin)) continue;
 		
         // No command
-        if(line[0] == '\n') continue;
+        if(user_input[0] == '\n') continue;
 		
+        // Command "ucinewgame"
+        if (!strncmp(user_input, "ucinewgame", 10)) set_board(START_POSITION);
+        
         // Command "uci"
-        if (!strncmp(line, "uci", 3)) {
+        else if (!strncmp(user_input, "uci", 3)) {
 			printf("id name ABC\n");
 			printf("id author Code Monkey King\n");
 			printf("uciok\n");
 		}
         
         // Command "isready"
-        else if(!strncmp(line, "isready", 7)) {
+        else if (!strncmp(user_input, "isready", 7)) {
 			printf("readyok\n");
 			continue;
 		}
-        
-        // Command "ucinewgame"
-        else if (!strncmp(line, "ucinewgame", 10)) set_board(START_POSITION);
 		
         // Command "position startpos moves"
-        else if(!strncmp(line, "position startpos moves", 23)) {
+        else if (!strncmp(user_input, "position startpos moves", 23)) {
 			set_board(START_POSITION);
-			print_board();
-			char *moves = line;
+			char *moves = user_input;
 			moves += 23;
 			int countChar = -1;
 			while(*moves) {
@@ -85,17 +84,14 @@ void uci() {
 		}
         
         // Command "position startpos"
-        else if(!strncmp(line, "position startpos", 17)) {
-			set_board(START_POSITION);
-			print_board();
-		}
+        else if (!strncmp(user_input, "position startpos", 17)) set_board(START_POSITION);
         
         // Command "position fen"
-        else if(!strncmp(line, "position fen", 12)) {
-			char *fen = line;
+        else if (!strncmp(user_input, "position fen", 12)) {
+			char *fen = user_input;
 			fen += 13;
 			set_board(fen);
-			char *moves = line;
+			char *moves = user_input;
 			while(strncmp(moves, "moves", 5)) {
 				*moves++;
 				if(*moves == '\0') break;
@@ -108,21 +104,24 @@ void uci() {
 						make_move(parse_move(moves), ALL_MOVES);
 					} *moves++;
 				}
-			} print_board();
+			}
 		}
         
         // Command "go depth"
-        else if (!strncmp(line, "go depth", 8)) {
-			char *go = line;
+        else if (!strncmp(user_input, "go depth", 8)) {
+			char *go = user_input;
 			go += 9;
 			int depth = *go - '0';
 			search_position(depth);
 		}
         
         // Other "go" commands
-        else if (!strncmp(line, "go", 2)) search_position(6);
+        else if (!strncmp(user_input, "go", 2)) search_position(6);
+        
+        // Debug command to print board
+        else if (!strncmp(user_input, "board", 5)) print_board();
 		
         // Command "quit"
-        else if(!strncmp(line, "quit", 4)) break;
+        else if (!strncmp(user_input, "quit", 4)) break;
 	}
 }

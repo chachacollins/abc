@@ -70,7 +70,7 @@
     extern long nodes;
     extern int mvv_lva[15][15];
     extern int killer_moves[2][64];
-    extern int history_moves[13][128];
+    extern int history_moves[15][128];
     extern int pv_table[64][64];
     extern int pv_length[64];
     extern int ply;

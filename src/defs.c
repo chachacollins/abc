@@ -86,7 +86,7 @@ int mvv_lva[15][15] = {
 int killer_moves[2][64];
 
 // History best moves
-int history_moves[13][128];
+int history_moves[15][128];
 
 // PV moves
 int pv_table[64][64];

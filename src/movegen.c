@@ -148,9 +148,6 @@ void generate_moves(Movelist *moves) {
 
 // Play move on board
 int make_move(int move, int capture_flag) {
-    // Increment ply
-    ply++;
-
     // Make all moves
     if (capture_flag == ALL_MOVES) {
         // Preserve board position
@@ -207,7 +204,7 @@ int make_move(int move, int capture_flag) {
     
     // Make only captures
     else {
-        if (get_move_capture(move)) make_move(move, ALL_MOVES);
+        if (get_move_capture(move)) return make_move(move, ALL_MOVES);
         else return 0;
     }
 }
@@ -223,7 +220,6 @@ void save_position(Position *position) {
 
 // Restore preserved position state
 void restore_position(Position *position) {
-    ply--;
     memcpy(board, position->board, sizeof(board));
     memcpy(king_square, position->king_square, sizeof(king_square));
     side = position->side;
