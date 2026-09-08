@@ -1,5 +1,6 @@
 #include "abc.h"
 
+// Static evaluation
 int evaluate_position() {
     int score = 0;
     for (int square = 0; square < 128; square++) {

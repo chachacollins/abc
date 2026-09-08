@@ -74,7 +74,7 @@
     extern int pv_table[64][64];
     extern int pv_length[64];
     extern int ply;
-    extern const int material_score[13]; // TODO: fix piece order!!!
+    extern const int material_score[15];
     extern const int pawn_score[128];
     extern const int knight_score[128];
     extern const int bishop_score[128];
@@ -109,6 +109,7 @@
     extern void perft_test(int depth);
 
     // Function in "search.c"
+    extern int evaluate_position();
     extern int search_position(int depth);
 
     // Function in "uci.c"

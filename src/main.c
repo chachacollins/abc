@@ -9,9 +9,11 @@ int main() {
     // run engine in UCI mode
     //uci();
     
-    set_board(tricky_position);
+    set_board(START_POSITION);
     print_board();
-    perft_test(5);
+    //perft_test(5);
+    
+    printf("eval %d\n", evaluate_position());
     
     return 0;
 }

@@ -105,21 +105,23 @@ int pv_length[64];
 // Half move counter
 int ply = 0;
 
-// Piece weights
-const int material_score[13] = { // TODO: fix piece order!!!
+// Piece weights ".KPNBRQ--kpnbrq";
+const int material_score[15] = {
       0,      // empty square score
+  10000,      // WHITE KING score
     100,      // WHITE PAWN score
     300,      // WHITE KNIGHT scrore
     350,      // WHITE BISHOP score
     500,      // WHITE ROOK score
    1000,      // WHITE QUEEN score
-  10000,      // WHITE KING score
+      0,
+      0,
+ -10000,      // BLACK KING score
    -100,      // BLACK PAWN score
    -300,      // BLACK KNIGHT scrore
    -350,      // BLACK BISHOP score
    -500,      // BLACK ROOK score
   -1000,      // BLACK QUEEN score
- -10000,      // BLACK KING score
     
 };
 
