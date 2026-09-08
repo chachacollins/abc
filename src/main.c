@@ -7,13 +7,11 @@
 
 int main() {
     // run engine in UCI mode
-    //uci();
+    uci();
     
-    set_board(START_POSITION);
-    print_board();
+    //set_board(cmk_position);
+    //print_board();
     //perft_test(5);
-    
-    printf("eval %d\n", evaluate_position());
     
     return 0;
 }

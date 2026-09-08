@@ -68,7 +68,7 @@
     extern int pawn_starting_rank[];
     extern int pawn_promoting_rank[];
     extern long nodes;
-    extern int mvv_lva[13][13]; // TODO: fix size!!!
+    extern int mvv_lva[15][15];
     extern int killer_moves[2][64];
     extern int history_moves[13][128];
     extern int pv_table[64][64];
