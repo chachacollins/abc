@@ -1,12 +1,20 @@
 #include "abc.h"
 
+// Encode UCI move to integer
 int parse_move(char *move_str) {
+    // Generate moves
 	moves move_list[1];
 	generate_moves(move_list);
-	int parse_from = (move_str[0] - 'a') + (8 - (move_str[1] - '0')) * 16;
+	
+    // Extract move params
+    int parse_from = (move_str[0] - 'a') + (8 - (move_str[1] - '0')) * 16;
 	int parse_to = (move_str[2] - 'a') + (8 - (move_str[3] - '0')) * 16;
 	int prom_piece = 0;
-	int move;
+	
+    // Create move
+    int move;
+    
+    // Encode move if available in move list
 	for(int count = 0; count < move_list->count; count++) {
 		move = move_list->moves[count];
 		if(get_move_source(move) == parse_from && get_move_target(move) == parse_to) {
@@ -19,29 +27,50 @@ int parse_move(char *move_str) {
 				continue;
 			} return move;
 		}
-	} return 0;
+	}
+    
+    // Error
+    return 0;
 }
 
+// UCI protocol
 void uci() {
+    // User input
 	char line[2400];
-	printf("id name chess_0x88\n");
+	
+    // Engine info
+    printf("id name ABC\n");
 	printf("id author Code Monkey King\n");
 	printf("uciok\n");
-	while(1) {
+	
+    // UCI loop
+    while(1) {
+        // Handle user input
 		memset(&line[0], 0, sizeof(line));
 		fflush(stdout);
 		if(!fgets(line, sizeof(line), stdin)) continue;
-		if(line[0] == '\n') continue;
-		if (!strncmp(line, "uci", 3))
-		{
+		
+        // No command
+        if(line[0] == '\n') continue;
+		
+        // Command "uci"
+        if (!strncmp(line, "uci", 3)) {
 			printf("id name ABC\n");
 			printf("id author Code Monkey King\n");
 			printf("uciok\n");
-		} else if(!strncmp(line, "isready", 7)) {
+		}
+        
+        // Command "isready"
+        else if(!strncmp(line, "isready", 7)) {
 			printf("readyok\n");
 			continue;
-		} else if (!strncmp(line, "ucinewgame", 10)) set_board(START_POSITION);
-		else if(!strncmp(line, "position startpos moves", 23)) {
+		}
+        
+        // Command "ucinewgame"
+        else if (!strncmp(line, "ucinewgame", 10)) set_board(START_POSITION);
+		
+        // Command "position startpos moves"
+        else if(!strncmp(line, "position startpos moves", 23)) {
 			set_board(START_POSITION);
 			print_board();
 			char *moves = line;
@@ -53,10 +82,16 @@ void uci() {
 					make_move(parse_move(moves), ALL_MOVES);
 				} *moves++;
 			}
-		} else if(!strncmp(line, "position startpos", 17)) {
+		}
+        
+        // Command "position startpos"
+        else if(!strncmp(line, "position startpos", 17)) {
 			set_board(START_POSITION);
 			print_board();
-		} else if(!strncmp(line, "position fen", 12)) {
+		}
+        
+        // Command "position fen"
+        else if(!strncmp(line, "position fen", 12)) {
 			char *fen = line;
 			fen += 13;
 			set_board(fen);
@@ -74,12 +109,20 @@ void uci() {
 					} *moves++;
 				}
 			} print_board();
-		} else if (!strncmp(line, "go depth", 8)) {
+		}
+        
+        // Command "go depth"
+        else if (!strncmp(line, "go depth", 8)) {
 			char *go = line;
 			go += 9;
 			int depth = *go - '0';
 			search_position(depth);
-		} else if (!strncmp(line, "go", 2)) search_position(6);
-		else if(!strncmp(line, "quit", 4)) break;
+		}
+        
+        // Other "go" commands
+        else if (!strncmp(line, "go", 2)) search_position(6);
+		
+        // Command "quit"
+        else if(!strncmp(line, "quit", 4)) break;
 	}
 }

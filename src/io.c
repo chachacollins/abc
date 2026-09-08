@@ -85,3 +85,10 @@ void print_board() {
     printf("    Enpassant:   %s\n", (enpassant == NONE)? "no" : square_to_coords[enpassant]);
     printf("    King square: %s\n\n", square_to_coords[king_square[side]]);
 }
+
+// Print move
+void print_move(int source, int target, int promoted) {
+    printf("%s%s%c ", square_to_coords[source],
+                      square_to_coords[target],
+                      promoted_pieces[promoted]);
+}

@@ -44,14 +44,14 @@
         A1 = 112, B1, C1, D1, E1, F1, G1, H1
     };
 
-    // Game constants
+    // Constants
     enum sides { WHITE, BLACK };
     enum types { NONE = -1, EMPTY, KING, PAWN, KNIGHT, BISHOP, ROOK, QUEEN };
     enum pieces { WK = 1, WP, WN, WB, WR, WQ, BK = 9, BP, BN, BB, BR, BQ };
     enum castling { WKC = 1, WQC = 2, BKC = 4, BQC = 8 };
     enum capture_flags {ALL_MOVES, ONLY_CAPTURES};
 
-    // Variables in board.c
+    // Variables in "defs.c"
     extern int board[128];
     extern int side;
     extern int enpassant;
@@ -68,6 +68,12 @@
     extern int pawn_starting_rank[];
     extern int pawn_promoting_rank[];
     extern long nodes;
+    extern int mvv_lva[13][13]; // TODO: fix size!!!
+    extern int killer_moves[2][64];
+    extern int history_moves[13][128];
+    extern int pv_table[64][64];
+    extern int pv_length[64];
+    extern int ply;
     extern const int material_score[13]; // TODO: fix piece order!!!
     extern const int pawn_score[128];
     extern const int knight_score[128];
@@ -80,6 +86,7 @@
     // Functions in "io.c"
     extern void set_board(char *fen);
     extern void print_board();
+    extern void print_move(int source, int target, int promoted);
 
     // Functions in "movegen.c"
     extern int encode_move(int source, int target, int promoted, int capture, int push, int enpassant, int castling);

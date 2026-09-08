@@ -148,21 +148,36 @@ void generate_moves(moves *move_list) {
 
 // Play move on board
 int make_move(int move, int capture_flag) {
+    // Increment ply
+    ply++;
+
+    // Make all moves
     if (capture_flag == ALL_MOVES) {
+        // Preserve board position
         Position position;
         save_position(&position);
+        
+        // Decode move
         int from_square = get_move_source(move);
         int to_square = get_move_target(move);
         int promoted_piece = get_move_promoted(move);
-        int enpass = get_move_enpassant(move);
+        int ep = get_move_enpassant(move);
         int double_push = get_move_push(move);
         int castling = get_move_castling(move);
+        
+        // Move piece
         board[to_square] = board[from_square];
         board[from_square] = EMPTY;
+        
+        // Pawn promotion
         if (promoted_piece) board[to_square] = promoted_piece;
-        if (enpass) !side ? (board[to_square + 16] = EMPTY) : (board[to_square - 16] = EMPTY);
+        
+        // Enpassant capture
+        if (ep) !side ? (board[to_square + 16] = EMPTY) : (board[to_square - 16] = EMPTY);
         enpassant = NONE;
         if (double_push) !side ? (enpassant = to_square + 16) : (enpassant = to_square - 16);
+        
+        // Castling move
         if (castling) {
             switch(to_square) {
                 case G1: board[F1] = board[H1]; board[H1] = EMPTY; break;
@@ -170,16 +185,28 @@ int make_move(int move, int capture_flag) {
                 case G8: board[F8] = board[H8]; board[H8] = EMPTY; break;
                 case C8: board[D8] = board[A8]; board[A8] = EMPTY; break;
             }
-        } if (board[to_square] == WK || board[to_square] == BK)
-            king_square[side] = to_square;
+        }
+        
+        // Update castling rights
         castle &= castling_rights[from_square];
         castle &= castling_rights[to_square];
+        
+        // Update king square
+        if (board[to_square] == WK || board[to_square] == BK)
+            king_square[side] = to_square;
+
+        // Switch side to move
         side ^= 1;
+        
+        // Filter illegal moves
         if (is_square_attacked(!side ? king_square[side ^ 1] : king_square[side ^ 1], side)) {
             restore_position(&position);
             return 0;
         } else return 1;
-    } else {
+    }
+    
+    // Make only captures
+    else {
         if (get_move_capture(move)) make_move(move, ALL_MOVES);
         else return 0;
     }
@@ -196,6 +223,7 @@ void save_position(Position *position) {
 
 // Restore preserved position state
 void restore_position(Position *position) {
+    ply--;
     memcpy(board, position->board, sizeof(board));
     memcpy(king_square, position->king_square, sizeof(king_square));
     side = position->side;

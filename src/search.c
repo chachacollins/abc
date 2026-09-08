@@ -1,49 +1,33 @@
 #include "abc.h"
 
-// most valuable victim & less valuable attacker
-
-/*
-                          
-    (Victims) Pawn Knight Bishop   Rook  Queen   King
-  (Attackers)
-        Pawn   105    205    305    405    505    605
-      Knight   104    204    304    404    504    604
-      Bishop   103    203    303    403    503    603
-        Rook   102    202    302    402    502    602
-       Queen   101    201    301    401    501    601
-        King   100    200    300    400    500    600
-
-*/
-
-static int mvv_lva[13][13] = {
-	0,   0,   0,   0,   0,   0,   0,  0,   0,   0,   0,   0,   0,
-	0, 105, 205, 305, 405, 505, 605,  105, 205, 305, 405, 505, 605,
-	0, 104, 204, 304, 404, 504, 604,  104, 204, 304, 404, 504, 604,
-	0, 103, 203, 303, 403, 503, 603,  103, 203, 303, 403, 503, 603,
-	0, 102, 202, 302, 402, 502, 602,  102, 202, 302, 402, 502, 602,
-	0, 101, 201, 301, 401, 501, 601,  101, 201, 301, 401, 501, 601,
-	0, 100, 200, 300, 400, 500, 600,  100, 200, 300, 400, 500, 600,
-
-	0, 105, 205, 305, 405, 505, 605,  105, 205, 305, 405, 505, 605,
-	0, 104, 204, 304, 404, 504, 604,  104, 204, 304, 404, 504, 604,
-	0, 103, 203, 303, 403, 503, 603,  103, 203, 303, 403, 503, 603,
-	0, 102, 202, 302, 402, 502, 602,  102, 202, 302, 402, 502, 602,
-	0, 101, 201, 301, 401, 501, 601,  101, 201, 301, 401, 501, 601,
-	0, 100, 200, 300, 400, 500, 600,  100, 200, 300, 400, 500, 600
-};
-
-// killer moves [id][ply]
-int killer_moves[2][64];
-
-// history moves [piece][square]
-int history_moves[13][128];
-
-// PV moves
-int pv_table[64][64];
-int pv_length[64];
-
-// half move
-int ply = 0;
+int evaluate_position() {
+    int score = 0;
+    for (int square = 0; square < 128; square++) {
+        if (!(square & 0x88)) {
+            int piece = board[square];
+            score += material_score[piece];
+			switch(piece) {
+				case WP: 
+				    score += pawn_score[square];
+				    if (board[square - 16] == WP) score -= 100;
+				    break;
+				case WN: score += knight_score[square]; break;
+				case WB: score += bishop_score[square]; break;
+				case WR: score += rook_score[square]; break;
+				case WK: score += king_score[square]; break;
+				case BP:
+				    score -= pawn_score[mirror_score[square]];
+				    if (board[square + 16] == BP) score += 100;
+				    break;
+				case BN: score -= knight_score[mirror_score[square]]; break;
+				case BB: score -= bishop_score[mirror_score[square]]; break;
+				case BR: score -= rook_score[mirror_score[square]]; break;
+				case BK: score -= king_score[mirror_score[square]]; break;
+			}
+            
+        }
+    } return !side ? score : -score;
+}
 
 // score move for move ordering
 static inline int score_move(int move)
@@ -155,14 +139,10 @@ static inline int quiescence_search(int alpha, int beta, int depth)
         Position position;
         save_position(&position);
         
-        // increment ply
-        ply++;
         
         // make only legal moves
         if (!make_move(move_list->moves[count], ONLY_CAPTURES))
         {
-            // decrement ply
-            ply--;
             
             // skip illegal move
             continue;
@@ -176,8 +156,6 @@ static inline int quiescence_search(int alpha, int beta, int depth)
         //take_back(move_list->moves[count]);
         restore_position(&position);
         
-        // decrement ply
-        ply--;
         
         //  fail hard beta-cutoff
         if (score >= beta)
@@ -239,14 +217,10 @@ static inline int negamax_search(int alpha, int beta, int depth)
         Position position;
         save_position(&position);
         
-        // increment ply
-        ply++;
         
         // make only legal moves
         if (!make_move(move_list->moves[count], ALL_MOVES))
         {
-            // decrement ply
-            ply--;
             
             // skip illegal move
             continue;

@@ -31,18 +31,15 @@ void perft_test(int depth) {
     for (int move_count = 0; move_count < move_list->count; move_count++) {
         Position position;
         save_position(&position);
-        if (!make_move(move_list->moves[move_count], ALL_MOVES)) continue;
+        int move = move_list->moves[move_count];
+        if (!make_move(move, ALL_MOVES)) continue;
         long cum_nodes = nodes;
         perft_driver(depth - 1);
         long old_nodes = nodes - cum_nodes;
         restore_position(&position);
-        printf("    move %d: %s%s%c    %ld\n",
-            move_count + 1,
-            square_to_coords[get_move_source(move_list->moves[move_count])],
-            square_to_coords[get_move_target(move_list->moves[move_count])],
-            promoted_pieces[get_move_promoted(move_list->moves[move_count])],
-            old_nodes
-        );
+        printf("    move %d: ", move_count + 1);
+        print_move(get_move_source(move), get_move_target(move), get_move_promoted(move));
+        printf("\t%ld\n", old_nodes);
     }
     
     // Print resutls
