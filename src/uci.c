@@ -1,4 +1,4 @@
-#include "defs.h"
+#include "abc.h"
 
 int parse_move(char *move_str) {
 	moves move_list[1];
@@ -23,14 +23,14 @@ int parse_move(char *move_str) {
 }
 
 void uci() {
-	char line[INPUT_BUFFER];
+	char line[2400];
 	printf("id name chess_0x88\n");
 	printf("id author Code Monkey King\n");
 	printf("uciok\n");
 	while(1) {
 		memset(&line[0], 0, sizeof(line));
 		fflush(stdout);
-		if(!fgets(line, INPUT_BUFFER, stdin)) continue;
+		if(!fgets(line, sizeof(line), stdin)) continue;
 		if(line[0] == '\n') continue;
 		if (!strncmp(line, "uci", 3))
 		{

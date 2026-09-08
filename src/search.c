@@ -1,4 +1,4 @@
-#include "defs.h"
+#include "abc.h"
 
 // most valuable victim & less valuable attacker
 
@@ -150,10 +150,10 @@ static inline int quiescence_search(int alpha, int beta, int depth)
     // loop over the generated moves
     for (int count = 0; count < move_list->count; count++)
     {      
-        // copy board state
+        // copy board position
         //copy_board();
-        board_state state;
-        save_state(&state);
+        Position position;
+        save_position(&position);
         
         // increment ply
         ply++;
@@ -171,10 +171,10 @@ static inline int quiescence_search(int alpha, int beta, int depth)
         // recursive call
         int score = -quiescence_search(-beta, -alpha, depth);
         
-        // restore board state
+        // restore board position
         //take_back();
         //take_back(move_list->moves[count]);
-        restore_state(&state);
+        restore_position(&position);
         
         // decrement ply
         ply--;
@@ -234,10 +234,10 @@ static inline int negamax_search(int alpha, int beta, int depth)
     // loop over the generated moves
     for (int count = 0; count < move_list->count; count++)
     {
-        // copy board state
+        // copy board position
         //copy_board();
-        board_state state;
-        save_state(&state);
+        Position position;
+        save_position(&position);
         
         // increment ply
         ply++;
@@ -258,10 +258,10 @@ static inline int negamax_search(int alpha, int beta, int depth)
         // recursive call
         int score = -negamax_search(-beta, -alpha, depth - 1);
         
-        // restore board state
+        // restore board position
         //take_back();
         //take_back(move_list->moves[count]);
-        restore_state(&state);
+        restore_position(&position);
         
         // decrement ply
         ply--;

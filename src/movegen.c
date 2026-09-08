@@ -1,5 +1,6 @@
-#include "defs.h"
+#include "abc.h"
 
+// Pack move params into a single integer
 int encode_move(int source, int target, int promoted, int capture, int push, int enpassant, int castling) {
     return (
                (source) |
@@ -12,6 +13,7 @@ int encode_move(int source, int target, int promoted, int capture, int push, int
            );
 }
 
+// Extract move params
 int get_move_source(int move) { return move & 0x7f; }
 int get_move_target(int move) { return (move >> 7) & 0x7f; }
 int get_move_promoted(int move) { return (move >> 14) & 0xf; }
@@ -20,16 +22,29 @@ int get_move_push(int move) { return (move >> 19) & 0x1; }
 int get_move_enpassant(int move) { return (move >> 20) & 0x1; }
 int get_move_castling(int move) { return (move >> 21) & 0x1; }
 
+// Add move to the move list
+void add_move(moves *move_list, int move) {
+    move_list->moves[move_list->count] = move;
+    move_list->count++;
+}
+
+// Find whether square is attacked
 int is_square_attacked(int square, int color) {
+    // Loop over piece types
     for (int piece_type = KING; piece_type <= QUEEN; piece_type++) {
         int piece = piece_type | (color << 3);
+        
+        // Attacked by pawns
         if (piece_type == PAWN) {
             int direction = 16 * (1 - 2 * color);
             for (int left_right = -1; left_right <= 1; left_right += 2) {
                 int target = square + direction + left_right;
                 if (!(target & 0x88) && board[target] == piece) return 1;
             }
-        } else {
+        }
+        
+        // Attacked by pieces
+        else {
             int slider = piece_type & 0x04;
             for (int d = 0; d < offset_length[piece_type]; d++) {
                 int target = square;
@@ -44,21 +59,29 @@ int is_square_attacked(int square, int color) {
                 } while (slider);
             }
         }
-    } return 0;
+    }
+    
+    // Not attacked
+    return 0;
 }
 
-void add_move(moves *move_list, int move) {
-    move_list->moves[move_list->count] = move;
-    move_list->count++;
-}
-
+// Generate pseudo legal moves
 void generate_moves(moves *move_list) {
+    // Reset move counter
     move_list->count = 0;
+    
+    // Loop over board squares
     for (int src = 0; src < 128; src++) {
+        
+        // Filter offboard squares
         if (!(src & 0x88)) {
             int piece = board[src];
             int piece_type = piece & 7;
+            
+            // Find piece of side to move
             if ((piece >> 3) == side) {
+                
+                // Generate pawn moves
                 if (piece_type == PAWN) {
                     int direction = -16 * (1 - 2 * side);
                     int dst = src + direction;
@@ -83,7 +106,10 @@ void generate_moves(moves *move_list) {
                             } else add_move(move_list, encode_move(src, dst, 0, 1, 0, 0, 0));
                         } if (dst == enpassant) add_move(move_list, encode_move(src, dst, 0, 1, 0, 1, 0));
                     }
-                } else if (piece_type == KING) {
+                }
+                
+                // Generate castling moves
+                else if (piece_type == KING) {
                     int ks = king_square[side];
                     if (castle & castling_side[side][0]) {
                       if (board[ks + 1] == EMPTY && board[ks + 2] == EMPTY) {
@@ -97,7 +123,10 @@ void generate_moves(moves *move_list) {
                             add_move(move_list, encode_move(ks, ks - 2, 0, 0, 0, 0, 1));
                       }
                     }
-                } if (piece_type != PAWN) {
+                }
+                
+                // Generate piece moves
+                if (piece_type != PAWN) {
                     int slider = piece_type & 0x04;
                     for (int d = 0; d < offset_length[piece_type]; d++) {
                       int dst = src;
@@ -117,26 +146,11 @@ void generate_moves(moves *move_list) {
     }
 }
 
-void save_state(board_state *state) {
-    memcpy(state->board, board, sizeof(board));
-    memcpy(state->king_square, king_square, sizeof(king_square));
-    state->side = side;
-    state->enpassant = enpassant;
-    state->castle = castle;
-}
-
-void restore_state(board_state *state) {
-    memcpy(board, state->board, sizeof(board));
-    memcpy(king_square, state->king_square, sizeof(king_square));
-    side = state->side;
-    enpassant = state->enpassant;
-    castle = state->castle;
-}
-
+// Play move on board
 int make_move(int move, int capture_flag) {
     if (capture_flag == ALL_MOVES) {
-        board_state state;
-        save_state(&state);
+        Position position;
+        save_position(&position);
         int from_square = get_move_source(move);
         int to_square = get_move_target(move);
         int promoted_piece = get_move_promoted(move);
@@ -162,11 +176,29 @@ int make_move(int move, int capture_flag) {
         castle &= castling_rights[to_square];
         side ^= 1;
         if (is_square_attacked(!side ? king_square[side ^ 1] : king_square[side ^ 1], side)) {
-            restore_state(&state);
+            restore_position(&position);
             return 0;
         } else return 1;
     } else {
         if (get_move_capture(move)) make_move(move, ALL_MOVES);
         else return 0;
     }
+}
+
+// Preserve current position state
+void save_position(Position *position) {
+    memcpy(position->board, board, sizeof(board));
+    memcpy(position->king_square, king_square, sizeof(king_square));
+    position->side = side;
+    position->enpassant = enpassant;
+    position->castle = castle;
+}
+
+// Restore preserved position state
+void restore_position(Position *position) {
+    memcpy(board, position->board, sizeof(board));
+    memcpy(king_square, position->king_square, sizeof(king_square));
+    side = position->side;
+    enpassant = position->enpassant;
+    castle = position->castle;
 }

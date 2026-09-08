@@ -1,8 +1,11 @@
-#ifndef DEFS
-#define DEFS
+// Manage header includes
+#ifndef ARRAY_BASED_CHESS
+#define ARRAY_BASED_CHESS
+    // Standard libraries
     #include <stdio.h>
     #include <string.h>
     
+    // OS specific libraries
     #ifdef WIN64
         #include "windows.h"
     #else
@@ -11,11 +14,25 @@
         #include "string.h"
     #endif
 
-    #define INPUT_BUFFER (400 * 6)
+    // Initial position FEN string
     #define START_POSITION "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 "
 
-    enum sides { WHITE, BLACK };
+    // Board position snapshot
+    typedef struct {
+        int board[128];
+        int king_square[2];
+        int side;
+        int enpassant;
+        int castle;
+    } Position;
     
+    // Move list
+    typedef struct {
+        int moves[256];
+        int count;
+    } moves;
+
+    // Board square constants
     enum squares {
         A8 = 0,   B8, C8, D8, E8, F8, G8, H8,
         A7 = 16,  B7, C7, D7, E7, F7, G7, H7,
@@ -27,44 +44,30 @@
         A1 = 112, B1, C1, D1, E1, F1, G1, H1
     };
 
+    // Game constants
+    enum sides { WHITE, BLACK };
     enum types { NONE = -1, EMPTY, KING, PAWN, KNIGHT, BISHOP, ROOK, QUEEN };
     enum pieces { WK = 1, WP, WN, WB, WR, WQ, BK = 9, BP, BN, BB, BR, BQ };
     enum castling { WKC = 1, WQC = 2, BKC = 4, BQC = 8 };
     enum capture_flags {ALL_MOVES, ONLY_CAPTURES};
-    
-    typedef struct {
-        int moves[256];
-        int count;
-    } moves;
 
-    typedef struct {
-        int board[128];
-        int king_square[2];
-        int side;
-        int enpassant;
-        int castle;
-    } board_state;
-
+    // Variables in board.c
     extern int board[128];
     extern int side;
     extern int enpassant;
     extern int castle;
     extern int king_square[2];
-
     extern char *square_to_coords[];
     extern int char_pieces[];
     extern int promoted_pieces[];
     extern char ascii_pieces[];
-    
     extern int move_offsets[7][8];
     extern int castling_rights[128];
     extern int offset_length[7];
     extern int castling_side[2][2];
     extern int pawn_starting_rank[];
     extern int pawn_promoting_rank[];
-    
     extern long nodes;
-
     extern const int material_score[13]; // TODO: fix piece order!!!
     extern const int pawn_score[128];
     extern const int knight_score[128];
@@ -74,14 +77,11 @@
     extern const int king_score[128];
     extern const int mirror_score[128];
 
+    // Functions in "io.c"
     extern void set_board(char *fen);
     extern void print_board();
 
-    extern void perft_driver(int depth);
-    extern void perft_test(int depth);
-
-
-
+    // Functions in "movegen.c"
     extern int encode_move(int source, int target, int promoted, int capture, int push, int enpassant, int castling);
     extern int get_move_source(int move);
     extern int get_move_target(int move);
@@ -90,20 +90,25 @@
     extern int get_move_push(int move);
     extern int get_move_enpassant(int move);
     extern int get_move_castling(int move);
-    
     extern int is_square_attacked(int square, int color);
     extern void add_move(moves *move_list, int move);
     extern void generate_moves(moves *move_list);
-    extern void save_state(board_state *state);
-    extern void restore_state(board_state *state);
     extern int make_move(int move, int capture_flag);
+    extern void save_position(Position *position);
+    extern void restore_position(Position *position);
 
+    // Function in "perft.c"
+    extern void perft_test(int depth);
+
+    // Function in "eval.c"
     extern int evaluate_position();
 
+    // Function in "search.c"
     extern int search_position(int depth);
 
-    extern int parse_move(char *move_str);
+    // Function in "uci.c"
     extern void uci();
-
+    
+    // Function in "misc.c"
     extern int get_time_ms();
 #endif

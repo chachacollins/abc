@@ -1,11 +1,13 @@
-#include "defs.h"
+#include "abc.h"
 
+// Chess board representation
 int board[128];
+int king_square[2] = {E1, E8};
 int side = WHITE;
 int enpassant = NONE;
 int castle = 15;
-int king_square[2] = {E1, E8};
 
+// Algebraic square names
 char *square_to_coords[] = {
     "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8", "i8", "j8", "k8", "l8", "m8", "n8", "o8", "p8",
     "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7", "i7", "j7", "k7", "l7", "m7", "n7", "o7", "p7",
@@ -17,18 +19,22 @@ char *square_to_coords[] = {
     "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1", "i1", "j1", "k1", "l1", "m1", "n1", "o1", "p1"
 };
 
+// Encode FEN pieces
 int char_pieces[] = {
     ['P'] = WP, ['N'] = WN, ['B'] = WB, ['R'] = WR, ['Q'] = WQ, ['K'] = WK,
     ['p'] = BP, ['n'] = BN, ['b'] = BB, ['r'] = BR, ['q'] = BQ, ['k'] = BK
 };
 
+// Extract promoted piece char
 int promoted_pieces[] = {
     [WQ] = 'q', [WR] = 'r', [WB] = 'b', [WN] = 'n',
     [BQ] = 'q', [BR] = 'r', [BB] = 'b', [BN] = 'n'
 };
 
+// Visual pieces representation
 char ascii_pieces[] = ".KPNBRQ--kpnbrq";
 
+// Piece move rules
 int move_offsets[7][8] = {
     { 0 }, { -16, -1, 16, 1, -17, -15, 17, 15 },
     { 0 }, { -33, -31, 33, 31, -18, -14, 18, 14 },
@@ -36,6 +42,7 @@ int move_offsets[7][8] = {
     {-16, -1, 16, 1, -17, -15, 17, 15}
 };
 
+// Castling rules
 int castling_rights[128] = {
      7, 15, 15, 15,  3, 15, 15, 11,  NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
     15, 15, 15, 15, 15, 15, 15, 15,  NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
@@ -47,13 +54,16 @@ int castling_rights[128] = {
     13, 15, 15, 15, 12, 15, 15, 14,  NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE
 };
 
+// Move generator helpers
 int offset_length[7] = {0, 8, 0, 8, 4, 4, 8};
 int castling_side[2][2] = {{1, 2}, {4, 8}};
 int pawn_starting_rank[] = {0x60, 0x10};
 int pawn_promoting_rank[] = {0x00, 0x70};
 
+// Nodes searched
 long nodes = 0;
 
+// Piece weights
 const int material_score[13] = { // TODO: fix piece order!!!
       0,      // empty square score
     100,      // WHITE PAWN score
@@ -71,6 +81,7 @@ const int material_score[13] = { // TODO: fix piece order!!!
     
 };
 
+// Positional scores
 const int pawn_score[128] =  {
     90,  90,  90,  90,  90,  90,  90,  90,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
     30,  30,  30,  40,  40,  30,  30,  30,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,

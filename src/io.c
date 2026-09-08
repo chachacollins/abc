@@ -1,4 +1,4 @@
-#include "defs.h"
+#include "abc.h"
 
 // Parse FEN and set up board
 void set_board(char *fen) {
