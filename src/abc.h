@@ -30,7 +30,7 @@
     typedef struct {
         int moves[256];
         int count;
-    } moves;
+    } Movelist;
 
     // Board square constants
     enum squares {
@@ -51,7 +51,7 @@
     enum castling { WKC = 1, WQC = 2, BKC = 4, BQC = 8 };
     enum capture_flags {ALL_MOVES, ONLY_CAPTURES};
 
-    // Variables in "defs.c"
+    // Definitions in "defs.c"
     extern int board[128];
     extern int side;
     extern int enpassant;
@@ -98,8 +98,8 @@
     extern int get_move_enpassant(int move);
     extern int get_move_castling(int move);
     extern int is_square_attacked(int square, int color);
-    extern void add_move(moves *move_list, int move);
-    extern void generate_moves(moves *move_list);
+    extern void add_move(Movelist *moves, int move);
+    extern void generate_moves(Movelist *moves);
     extern int make_move(int move, int capture_flag);
     extern void save_position(Position *position);
     extern void restore_position(Position *position);

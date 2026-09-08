@@ -3,8 +3,8 @@
 // Encode UCI move to integer
 int parse_move(char *move_str) {
     // Generate moves
-	moves move_list[1];
-	generate_moves(move_list);
+	Movelist moves[1];
+	generate_moves(moves);
 	
     // Extract move params
     int parse_from = (move_str[0] - 'a') + (8 - (move_str[1] - '0')) * 16;
@@ -15,8 +15,8 @@ int parse_move(char *move_str) {
     int move;
     
     // Encode move if available in move list
-	for(int count = 0; count < move_list->count; count++) {
-		move = move_list->moves[count];
+	for(int count = 0; count < moves->count; count++) {
+		move = moves->moves[count];
 		if(get_move_source(move) == parse_from && get_move_target(move) == parse_to) {
 			prom_piece = get_move_promoted(move);
 			if(prom_piece) {

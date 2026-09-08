@@ -72,21 +72,21 @@ static inline int score_move(int move)
     return score;
 }
 
-static inline void sort_moves(moves *move_list)
+static inline void sort_moves(Movelist *moves)
 {
     // define move scores array
-    int move_scores[move_list->count];
+    int move_scores[moves->count];
     
     // init move scores array
-    for (int count = 0; count < move_list->count; count++)
+    for (int count = 0; count < moves->count; count++)
         // score move
-        move_scores[count] = score_move(move_list->moves[count]);
+        move_scores[count] = score_move(moves->moves[count]);
     
     // loop over current move score
-    for (int current = 0; current < move_list->count; current++)
+    for (int current = 0; current < moves->count; current++)
     {
         // loop over next move score
-        for (int next = current + 1; next < move_list->count; next++)
+        for (int next = current + 1; next < moves->count; next++)
         {
             // order moves descending
             if (move_scores[current] < move_scores[next])
@@ -97,9 +97,9 @@ static inline void sort_moves(moves *move_list)
                 move_scores[next] = temp_score;
                 
                 // swap corresponding moves
-                int temp_move = move_list->moves[current];
-                move_list->moves[current] = move_list->moves[next];
-                move_list->moves[next] = temp_move;
+                int temp_move = moves->moves[current];
+                moves->moves[current] = moves->moves[next];
+                moves->moves[next] = temp_move;
             }
         }
     }    
@@ -123,16 +123,16 @@ static inline int quiescence_search(int alpha, int beta, int depth)
         alpha = eval;
 
     // create move list variable
-    moves move_list[1];
+    Movelist moves[1];
     
     // generate moves
-    generate_moves(move_list);
+    generate_moves(moves);
     
     // move ordering
-    sort_moves(move_list);
+    sort_moves(moves);
     
     // loop over the generated moves
-    for (int count = 0; count < move_list->count; count++)
+    for (int count = 0; count < moves->count; count++)
     {      
         // copy board position
         //copy_board();
@@ -141,7 +141,7 @@ static inline int quiescence_search(int alpha, int beta, int depth)
         
         
         // make only legal moves
-        if (!make_move(move_list->moves[count], ONLY_CAPTURES))
+        if (!make_move(moves->moves[count], ONLY_CAPTURES))
         {
             
             // skip illegal move
@@ -201,16 +201,16 @@ static inline int negamax_search(int alpha, int beta, int depth)
         depth++;
     
     // create move list variable
-    moves move_list[1];
+    Movelist moves[1];
     
     // generate moves
-    generate_moves(move_list);
+    generate_moves(moves);
     
     // move ordering
-    sort_moves(move_list);
+    sort_moves(moves);
     
     // loop over the generated moves
-    for (int count = 0; count < move_list->count; count++)
+    for (int count = 0; count < moves->count; count++)
     {
         // copy board position
         //copy_board();
@@ -219,7 +219,7 @@ static inline int negamax_search(int alpha, int beta, int depth)
         
         
         // make only legal moves
-        if (!make_move(move_list->moves[count], ALL_MOVES))
+        if (!make_move(moves->moves[count], ALL_MOVES))
         {
             
             // skip illegal move
@@ -245,7 +245,7 @@ static inline int negamax_search(int alpha, int beta, int depth)
         {
             // update killer moves
             killer_moves[1][ply] = killer_moves[0][ply];
-            killer_moves[0][ply] = move_list->moves[count];
+            killer_moves[0][ply] = moves->moves[count];
             
             return beta;
         }
@@ -254,13 +254,13 @@ static inline int negamax_search(int alpha, int beta, int depth)
         if (score > alpha)
         {
             // update history score
-            history_moves[board[get_move_source(move_list->moves[count])]][get_move_target(move_list->moves[count])] += depth;
+            history_moves[board[get_move_source(moves->moves[count])]][get_move_target(moves->moves[count])] += depth;
 
             // set alpha score
             alpha = score;
             
             // store PV move
-			pv_table[ply][ply] = move_list->moves[count];
+			pv_table[ply][ply] = moves->moves[count];
 			
 			for (int i = ply + 1; i < pv_length[ply + 1]; i++)
 				pv_table[ply][i] = pv_table[ply + 1][i];
@@ -269,7 +269,7 @@ static inline int negamax_search(int alpha, int beta, int depth)
             
             // store current best move
             if(!ply)
-                best_so_far = move_list->moves[count];
+                best_so_far = moves->moves[count];
         }      
     }
     

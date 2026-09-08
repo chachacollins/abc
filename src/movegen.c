@@ -23,9 +23,9 @@ int get_move_enpassant(int move) { return (move >> 20) & 0x1; }
 int get_move_castling(int move) { return (move >> 21) & 0x1; }
 
 // Add move to the move list
-void add_move(moves *move_list, int move) {
-    move_list->moves[move_list->count] = move;
-    move_list->count++;
+void add_move(Movelist *moves, int move) {
+    moves->moves[moves->count] = move;
+    moves->count++;
 }
 
 // Find whether square is attacked
@@ -66,9 +66,9 @@ int is_square_attacked(int square, int color) {
 }
 
 // Generate pseudo legal moves
-void generate_moves(moves *move_list) {
+void generate_moves(Movelist *moves) {
     // Reset move counter
-    move_list->count = 0;
+    moves->count = 0;
     
     // Loop over board squares
     for (int src = 0; src < 128; src++) {
@@ -88,12 +88,12 @@ void generate_moves(moves *move_list) {
                     if ((dst & 0x88) == 0 && board[dst] == EMPTY) { 
                         if ((dst & 0xF0) == pawn_promoting_rank[side]) {
                             for (int promoted_piece = QUEEN; promoted_piece >= KNIGHT; promoted_piece--)
-                                add_move(move_list, encode_move(src, dst, (promoted_piece | (side << 3)), 1, 0, 0, 0));
+                                add_move(moves, encode_move(src, dst, (promoted_piece | (side << 3)), 1, 0, 0, 0));
                         } else {
-                            add_move(move_list, encode_move(src, dst, 0, 0, 0, 0, 0));
+                            add_move(moves, encode_move(src, dst, 0, 0, 0, 0, 0));
                             int double_dst = src + direction * 2;
                             if ((src & 0xF0) == pawn_starting_rank[side] && board[double_dst] == EMPTY)
-                                add_move(move_list, encode_move(src, double_dst, 0, 0, 1, 0, 0));
+                                add_move(moves, encode_move(src, double_dst, 0, 0, 1, 0, 0));
                         }
                     } for (int lr = -1; lr <= 1; lr += 2) {
                         dst = src + direction + lr;
@@ -102,9 +102,9 @@ void generate_moves(moves *move_list) {
                         if (dst_piece != EMPTY && (dst_piece >> 3) != side) {
                             if ((dst & 0xF0) == pawn_promoting_rank[side]) {
                                 for (int promoted_piece = QUEEN; promoted_piece >= KNIGHT; promoted_piece--)
-                                    add_move(move_list, encode_move(src, dst, (promoted_piece | (side << 3)), 1, 0, 0, 0));
-                            } else add_move(move_list, encode_move(src, dst, 0, 1, 0, 0, 0));
-                        } if (dst == enpassant) add_move(move_list, encode_move(src, dst, 0, 1, 0, 1, 0));
+                                    add_move(moves, encode_move(src, dst, (promoted_piece | (side << 3)), 1, 0, 0, 0));
+                            } else add_move(moves, encode_move(src, dst, 0, 1, 0, 0, 0));
+                        } if (dst == enpassant) add_move(moves, encode_move(src, dst, 0, 1, 0, 1, 0));
                     }
                 }
                 
@@ -114,13 +114,13 @@ void generate_moves(moves *move_list) {
                     if (castle & castling_side[side][0]) {
                       if (board[ks + 1] == EMPTY && board[ks + 2] == EMPTY) {
                         if (is_square_attacked(ks, 1 - side) == 0 && is_square_attacked(ks + 1, 1 - side) == 0)
-                            add_move(move_list, encode_move(ks, ks + 2, 0, 0, 0, 0, 1));
+                            add_move(moves, encode_move(ks, ks + 2, 0, 0, 0, 0, 1));
                       }
                     } if (castle & castling_side[side][1]) {
                       if (board[ks - 1] == EMPTY && board[ks - 2] == EMPTY && board[ks - 3] == EMPTY) {
                         if (is_square_attacked(ks, 1 - side) == 0 &&
                             is_square_attacked(ks - 1, 1 - side) == 0)
-                            add_move(move_list, encode_move(ks, ks - 2, 0, 0, 0, 0, 1));
+                            add_move(moves, encode_move(ks, ks - 2, 0, 0, 0, 0, 1));
                       }
                     }
                 }
@@ -135,9 +135,9 @@ void generate_moves(moves *move_list) {
                         if (dst & 0x88) break;
                         int dst_piece = board[dst];
                         if (dst_piece != EMPTY) {
-                          if ((dst_piece >> 3) != side) add_move(move_list, encode_move(src, dst, 0, 1, 0, 0, 0));
+                          if ((dst_piece >> 3) != side) add_move(moves, encode_move(src, dst, 0, 1, 0, 0, 0));
                           break;
-                        } add_move(move_list, encode_move(src, dst, 0, 0, 0, 0, 0));
+                        } add_move(moves, encode_move(src, dst, 0, 0, 0, 0, 0));
                       } while (slider);
                     }
                 }
