@@ -1,5 +1,25 @@
 #include "defs.h"
 
+int encode_move(int source, int target, int promoted, int capture, int push, int enpassant, int castling) {
+    return (
+               (source) |
+               (target << 7) |
+               (promoted << 14) |
+               (capture << 18) |
+               (push << 19) |
+               (enpassant << 20) |
+               (castling << 21)
+           );
+}
+
+int get_move_source(int move) { return move & 0x7f; }
+int get_move_target(int move) { return (move >> 7) & 0x7f; }
+int get_move_promoted(int move) { return (move >> 14) & 0xf; }
+int get_move_capture(int move) { return (move >> 18) & 0x1; }
+int get_move_push(int move) { return (move >> 19) & 0x1; }
+int get_move_enpassant(int move) { return (move >> 20) & 0x1; }
+int get_move_castling(int move) { return (move >> 21) & 0x1; }
+
 int is_square_attacked(int square, int color) {
     for (int piece_type = KING; piece_type <= QUEEN; piece_type++) {
         int piece = piece_type | (color << 3);
@@ -119,9 +139,9 @@ int make_move(int move, int capture_flag) {
         save_state(&state);
         int from_square = get_move_source(move);
         int to_square = get_move_target(move);
-        int promoted_piece = get_move_piece(move);
+        int promoted_piece = get_move_promoted(move);
         int enpass = get_move_enpassant(move);
-        int double_push = get_move_PAWN(move);
+        int double_push = get_move_push(move);
         int castling = get_move_castling(move);
         board[to_square] = board[from_square];
         board[from_square] = EMPTY;

@@ -10,7 +10,7 @@ int parse_move(char *move_str) {
 	for(int count = 0; count < move_list->count; count++) {
 		move = move_list->moves[count];
 		if(get_move_source(move) == parse_from && get_move_target(move) == parse_to) {
-			prom_piece = get_move_piece(move);
+			prom_piece = get_move_promoted(move);
 			if(prom_piece) {
 				if((prom_piece == WN || prom_piece == BN) && move_str[4] == 'n') return move;
 				else if((prom_piece == WB || prom_piece == BB) && move_str[4] == 'b') return move;
@@ -23,14 +23,14 @@ int parse_move(char *move_str) {
 }
 
 void uci() {
-	char line[inputBuffer];
+	char line[INPUT_BUFFER];
 	printf("id name chess_0x88\n");
 	printf("id author Code Monkey King\n");
 	printf("uciok\n");
 	while(1) {
 		memset(&line[0], 0, sizeof(line));
 		fflush(stdout);
-		if(!fgets(line, inputBuffer, stdin)) continue;
+		if(!fgets(line, INPUT_BUFFER, stdin)) continue;
 		if(line[0] == '\n') continue;
 		if (!strncmp(line, "uci", 3))
 		{
@@ -40,9 +40,9 @@ void uci() {
 		} else if(!strncmp(line, "isready", 7)) {
 			printf("readyok\n");
 			continue;
-		} else if (!strncmp(line, "ucinewgame", 10)) set_board(start_position);
+		} else if (!strncmp(line, "ucinewgame", 10)) set_board(START_POSITION);
 		else if(!strncmp(line, "position startpos moves", 23)) {
-			set_board(start_position);
+			set_board(START_POSITION);
 			print_board();
 			char *moves = line;
 			moves += 23;
@@ -54,7 +54,7 @@ void uci() {
 				} *moves++;
 			}
 		} else if(!strncmp(line, "position startpos", 17)) {
-			set_board(start_position);
+			set_board(START_POSITION);
 			print_board();
 		} else if(!strncmp(line, "position fen", 12)) {
 			char *fen = line;

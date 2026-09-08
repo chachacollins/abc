@@ -343,7 +343,7 @@ int search_position(int depth)
         {
             printf("%s%s%c ", square_to_coords[get_move_source(pv_table[0][i])],
                               square_to_coords[get_move_target(pv_table[0][i])],
-                              promoted_pieces[get_move_piece(pv_table[0][i])]);
+                              promoted_pieces[get_move_promoted(pv_table[0][i])]);
         }
         
         printf("\n");
@@ -352,5 +352,5 @@ int search_position(int depth)
 	// print best move
     printf("\nbestmove %s%s%c\n", square_to_coords[get_move_source(pv_table[0][0])],
                                   square_to_coords[get_move_target(pv_table[0][0])],
-                                  promoted_pieces[get_move_piece(pv_table[0][0])]);
+                                  promoted_pieces[get_move_promoted(pv_table[0][0])]);
 }

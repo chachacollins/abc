@@ -1,14 +1,21 @@
 #include "defs.h"
 
+// Parse FEN and set up board
 void set_board(char *fen) {
+    // Clear board
     for (int rank = 0; rank < 8; rank++) {
         for (int file = 0; file < 16; file++) {
             int square = rank * 16 + file;
             if (!(square & 0x88)) board[square] = EMPTY;
         }
-    } side = -1;
-    castle = 0;
+    }
+    
+    // Clear game state
+    side = NONE;
+    castle = EMPTY;
     enpassant = NONE;
+    
+    // Set up pieces
     for (int rank = 0; rank < 8; rank++) {
         for (int file = 0; file < 16; file++) {
             int square = rank * 16 + file;
@@ -26,9 +33,14 @@ void set_board(char *fen) {
                 } if (*fen == '/') *fen++;
             }
         }
-    } *fen++;
+    }
+    
+    // Set up side to move
+    *fen++;
     side = (*fen == 'w') ? WHITE : BLACK;
     fen += 2;
+    
+    // Set up castling rights
     while (*fen != ' ') {
         switch(*fen) {
             case 'K': castle |= WKC; break;
@@ -37,7 +49,10 @@ void set_board(char *fen) {
             case 'q': castle |= BQC; break;
             case '-': break;
         } *fen++;
-    } *fen++;
+    }
+    
+    // Set up enpassant square
+    *fen++;
     if (*fen != '-') {
         int file = fen[0] - 'a';
         int rank = 8 - (fen[1] - '0');
@@ -45,8 +60,9 @@ void set_board(char *fen) {
     } else enpassant = NONE;   
 }
 
+// Print board to console
 void print_board() {
-    char ascii_pieces[] = ".KPNBRQ--kpnbrq";
+    // Print board
     printf("\n");
     for (int rank = 0; rank < 8; rank++) {
         for (int file = 0; file < 16; file++) {
@@ -54,12 +70,18 @@ void print_board() {
             if (file == 0) printf(" %d  ", 8 - rank);
             if (!(square & 0x88)) printf("%c ", ascii_pieces[board[square]]);
         } printf("\n");
-    } printf("\n    a b c d e f g h\n\n");
+    }
+    
+    // Get castling rights
+    int K = castle & WKC;
+    int Q = castle & WQC;
+    int k = castle & BKC;
+    int q = castle & BQC;
+
+    // Print game state
+    printf("\n    a b c d e f g h\n\n");
     printf("    Side:     %s\n", (side == WHITE) ? "white": "black");
-    printf("    Castling:  %c%c%c%c\n", (castle & WKC) ? 'K' : '-', 
-                                        (castle & WQC) ? 'Q' : '-',
-                                        (castle & BKC) ? 'k' : '-',
-                                        (castle & BQC) ? 'q' : '-');
+    printf("    Castling:  %c%c%c%c\n", K ? 'K' : '-', Q ? 'Q' : '-', k ? 'k' : '-', q ? 'q' : '-');
     printf("    Enpassant:   %s\n", (enpassant == NONE)? "no" : square_to_coords[enpassant]);
     printf("    King square: %s\n\n", square_to_coords[king_square[side]]);
 }

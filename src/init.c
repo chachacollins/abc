@@ -1,5 +1,11 @@
 #include "defs.h"
 
+int board[128];
+int side = WHITE;
+int enpassant = NONE;
+int castle = 15;
+int king_square[2] = {E1, E8};
+
 char *square_to_coords[] = {
     "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8", "i8", "j8", "k8", "l8", "m8", "n8", "o8", "p8",
     "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7", "i7", "j7", "k7", "l7", "m7", "n7", "o7", "p7",
@@ -21,6 +27,8 @@ int promoted_pieces[] = {
     [BQ] = 'q', [BR] = 'r', [BB] = 'b', [BN] = 'n'
 };
 
+char ascii_pieces[] = ".KPNBRQ--kpnbrq";
+
 int move_offsets[7][8] = {
     { 0 }, { -16, -1, 16, 1, -17, -15, 17, 15 },
     { 0 }, { -33, -31, 33, 31, -18, -14, 18, 14 },
@@ -38,6 +46,13 @@ int castling_rights[128] = {
     15, 15, 15, 15, 15, 15, 15, 15,  NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
     13, 15, 15, 15, 12, 15, 15, 14,  NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE
 };
+
+int offset_length[7] = {0, 8, 0, 8, 4, 4, 8};
+int castling_side[2][2] = {{1, 2}, {4, 8}};
+int pawn_starting_rank[] = {0x60, 0x10};
+int pawn_promoting_rank[] = {0x00, 0x70};
+
+long nodes = 0;
 
 const int material_score[13] = { // TODO: fix piece order!!!
       0,      // empty square score
@@ -124,14 +139,3 @@ const int mirror_score[128] = {
 	A7, B7, C7, D7, E7, F7, G7, H7,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
 	A8, B8, C8, D8, E8, F8, G8, H8,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE
 };
-
-int offset_length[7] = {0, 8, 0, 8, 4, 4, 8};
-int castling_side[2][2] = {{1, 2}, {4, 8}};
-int pawn_starting_rank[] = {0x60, 0x10};
-int pawn_promoting_rank[] = {0x00, 0x70};
-int board[128];
-int side = WHITE;
-int enpassant = NONE;
-int castle = 15;
-int king_square[2] = {E1, E8};
-long nodes = 0;

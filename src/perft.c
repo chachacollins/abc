@@ -14,7 +14,7 @@ void perft_driver(int depth) {
 }
 
 void perft_test(int depth) {
-    printf("\n    Performance test:\n\n");
+    printf("\n      Performance test:\n\n");
     int start_time = get_time_ms();
     moves move_list[1];
     generate_moves(move_list);
@@ -30,10 +30,10 @@ void perft_test(int depth) {
             move_count + 1,
             square_to_coords[get_move_source(move_list->moves[move_count])],
             square_to_coords[get_move_target(move_list->moves[move_count])],
-            promoted_pieces[get_move_piece(move_list->moves[move_count])],
+            promoted_pieces[get_move_promoted(move_list->moves[move_count])],
             old_nodes
         );
-    } printf("\n    Depth: %d", depth);
-    printf("\n    Nodes: %ld", nodes);
-    printf("\n     Time: %d ms\n\n", get_time_ms() - start_time);
+    } printf("\n      Depth: %d", depth);
+    printf("\n      Nodes: %ld", nodes);
+    printf("\n       Time: %d ms\n\n", get_time_ms() - start_time);
 }
