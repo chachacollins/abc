@@ -12,11 +12,13 @@ int evaluate_position() {
 				case WN: score += knight_score[square]; break;
 				case WB: score += bishop_score[square]; break;
 				case WR: score += rook_score[square]; break;
+				case WQ: score += queen_score[square]; break;
 				case WK: score += king_score[square]; break;
 				case BP: score -= pawn_score[mirror_score[square]]; break;
 				case BN: score -= knight_score[mirror_score[square]]; break;
 				case BB: score -= bishop_score[mirror_score[square]]; break;
 				case BR: score -= rook_score[mirror_score[square]]; break;
+				case BQ: score -= queen_score[mirror_score[square]]; break;
 				case BK: score -= king_score[mirror_score[square]]; break;
 			}
         }
@@ -98,9 +100,6 @@ int negamax_search(int alpha, int beta, int depth) {
         save_position(&position); ply++;
         if (!make_move(move, ALL_MOVES)) { ply--; continue; }
         legal_moves++; int score = 0;
-        
-        
-        //score = -negamax_search(-beta, -alpha, depth - 1);
         if (moves_searched == 0) score = -negamax_search(-beta, -alpha, depth - 1);
         else {
             if ( moves_searched >= 4 && depth >= 3 && in_check == 0 && 
@@ -113,10 +112,7 @@ int negamax_search(int alpha, int beta, int depth) {
                 if((score > alpha) && (score < beta))
                     score = -negamax_search(-beta, -alpha, depth-1);
             }
-        }
-        
-        
-        restore_position(&position); ply--;
+        } restore_position(&position); ply--;
         if (stopped == 1) break;
         moves_searched++;
         if (score > alpha) {

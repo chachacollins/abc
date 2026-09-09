@@ -89,7 +89,7 @@
     extern int knight_score[128];
     extern int bishop_score[128];
     extern int rook_score[128];
-    extern int queen_score[128];
+    //extern int queen_score[128];
     extern int king_score[128];
     extern int mirror_score[128];
 

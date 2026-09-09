@@ -121,10 +121,89 @@ int timeset = 0;
 // variable to flag when the time is up
 int stopped = 0;
 
+
+
+// Piece weights
+/*int material_score[15] = {
+    0, 10000, 82, 337, 365, 477, 1025, 0, 0,
+    -10000, -82, -337, -365, -477, -1025,
+};
+
+// Positional scores
+int pawn_score[128] =  {
+     0,   0,   0,   0,   0,   0,  0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    98, 134,  61,  95,  68, 126, 34, -11,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -6,   7,  26,  31,  65,  56, 25, -20,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+   -14,  13,   6,  21,  23,  12, 17, -23,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+   -27,  -2,  -5,  12,  17,   6, 10, -25,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+   -26,  -4,  -4, -10,   3,   3, 33, -12,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+   -35,  -1, -20, -23, -15,  24, 38, -22,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+     0,   0,   0,   0,   0,   0,  0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE
+};
+
+int knight_score[128] =  {
+  -167, -89, -34, -49,  61, -97, -15, -107,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+   -73, -41,  72,  36,  23,  62,   7,  -17,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+   -47,  60,  37,  65,  84, 129,  73,   44,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -9,  17,  19,  53,  37,  69,  18,   22,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+   -13,   4,  16,  13,  28,  19,  21,   -8,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+   -23,  -9,  12,  10,  19,  17,  25,  -16,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+   -29, -53, -12,  -3,  -1,  18, -14,  -19,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+  -105, -21, -58, -33, -17, -28, -19,  -23,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE
+};
+
+int bishop_score[128] =  {
+    -29,   4, -82, -37, -25, -42,   7,  -8,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -26,  16, -18, -13,  30,  59,  18, -47,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -16,  37,  43,  40,  35,  50,  37,  -2,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -4,   5,  19,  50,  37,  37,   7,  -2,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -6,  13,  13,  26,  34,  12,  10,   4,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    0,  15,  15,  15,  14,  27,  18,  10,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    4,  15,  16,   0,   7,  21,  33,   1,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -33,  -3, -14, -21, -13, -12, -39, -21,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE
+
+};
+
+int rook_score[128] = {
+    32,  42,  32,  51, 63,  9,  31,  43,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    27,  32,  58,  62, 80, 67,  26,  44,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -5,  19,  26,  36, 17, 45,  61,  16,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -24, -11,   7,  26, 24, 35,  -8, -20,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -36, -26, -12,  -1,  9, -7,   6, -23,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -45, -25, -16, -17,  3,  0,  -5, -33,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -44, -16, -20,  -9, -1, 11,  -6, -71,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -19, -13,   1,  17, 16,  7, -37, -26,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE
+
+};
+
+int queen_score[128] =  {
+     -28,   0,  29,  12,  59,  44,  43,  45,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -24, -39,  -5,   1, -16,  57,  28,  54,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -13, -17,   7,   8,  29,  56,  47,  57,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -27, -27, -16, -16,  -1,  17,  -2,   1,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -9, -26,  -9, -10,  -2,  -4,   3,  -3,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -14,   2, -11,  -2,  -5,   2,  14,   5,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -35,  -8,  11,   2,   8,  15,  -3,   1,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -1, -18,  -9,  10, -15, -25, -31, -50,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+
+};
+
+int king_score[128] =  {
+    -65,  23,  16, -15, -56, -34,   2,  13,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    29,  -1, -20,  -7,  -8,  -4, -38, -29,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -9,  24,   2, -16, -20,   6,  22, -22,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -17, -20, -12, -27, -30, -25, -14, -36,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -49,  -1, -27, -39, -46, -44, -33, -51,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -14, -14, -22, -46, -44, -30, -15, -27,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    1,   7,  -8, -64, -43, -16,   9,   8,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    -15,  36,  12, -54,   8, -28,  24,  14,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE
+
+};*/
+
 // Piece weights
 int material_score[15] = {
-    0, 10000, 100, 300, 400, 500, 1000, 0, 0,
-    -10000, -100, -300, -400, -500, -1000
+    0, 10000, 100, 300, 350, 500, 1000, 0, 0,
+    -10000, -100, -300, -350, -500, -1000
 };
 
 // Positional scores
