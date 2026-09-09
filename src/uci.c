@@ -38,7 +38,6 @@ void parse_go(char *command) {
         stoptime = starttime + time + inc;
         if (time < 1500 && inc && depth == 64) stoptime = starttime + inc - 50;
     } if (depth == -1) depth = 64;
-    printf("time: %d  start: %u  stop: %u  depth: %d  timeset:%d\n", time, starttime, stoptime, depth, timeset);
     search_position(depth);
 }
 // Encode UCI move to integer

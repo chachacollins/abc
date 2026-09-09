@@ -84,14 +84,14 @@
     extern int stoptime;
     extern int timeset;
     extern int stopped;
-    extern const int material_score[15];
-    extern const int pawn_score[128];
-    extern const int knight_score[128];
-    extern const int bishop_score[128];
-    extern const int rook_score[128];
-    extern const int queen_score[128];
-    extern const int king_score[128];
-    extern const int mirror_score[128];
+    extern int material_score[15];
+    extern int pawn_score[128];
+    extern int knight_score[128];
+    extern int bishop_score[128];
+    extern int rook_score[128];
+    extern int queen_score[128];
+    extern int king_score[128];
+    extern int mirror_score[128];
 
     // Functions in "io.c"
     extern void set_board(char *fen);

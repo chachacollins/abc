@@ -122,13 +122,13 @@ int timeset = 0;
 int stopped = 0;
 
 // Piece weights
-const int material_score[15] = {
-    0, 10000, 100, 300, 350, 500, 1000, 0, 0,
-    -10000, -100, -300, -350, -500, -1000
+int material_score[15] = {
+    0, 10000, 100, 300, 400, 500, 1000, 0, 0,
+    -10000, -100, -300, -400, -500, -1000
 };
 
 // Positional scores
-const int pawn_score[128] =  {
+int pawn_score[128] =  {
     90,  90,  90,  90,  90,  90,  90,  90,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
     30,  30,  30,  40,  40,  30,  30,  30,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
     20,  20,  20,  30,  30,  30,  20,  20,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
@@ -139,7 +139,7 @@ const int pawn_score[128] =  {
      0,   0,   0,   0,   0,   0,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE
 };
 
-const int knight_score[128] =  {
+int knight_score[128] =  {
     -5,   0,   0,   0,   0,   0,   0,  -5,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
     -5,   0,   0,  10,  10,   0,   0,  -5,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
     -5,   5,  20,  20,  20,  20,   5,  -5,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
@@ -150,7 +150,7 @@ const int knight_score[128] =  {
     -5, -10,   0,   0,   0,   0, -10,  -5,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE
 };
 
-const int bishop_score[128] =  {
+int bishop_score[128] =  {
      0,   0,   0,   0,   0,   0,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
      0,   0,   0,   0,   0,   0,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
      0,   0,   0,  10,  10,   0,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
@@ -162,7 +162,7 @@ const int bishop_score[128] =  {
 
 };
 
-const int rook_score[128] = {
+int rook_score[128] = {
     50,  50,  50,  50,  50,  50,  50,  50,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
     50,  50,  50,  50,  50,  50,  50,  50,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
      0,   0,  10,  20,  20,  10,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
@@ -174,7 +174,7 @@ const int rook_score[128] = {
 
 };
 
-const int king_score[128] =  {
+int king_score[128] =  {
      0,   0,   0,   0,   0,   0,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
      0,   0,   5,   5,   5,   5,   0,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
      0,   5,   5,  10,  10,   5,   5,   0,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
@@ -186,7 +186,7 @@ const int king_score[128] =  {
 
 };
 
-const int mirror_score[128] = {
+int mirror_score[128] = {
 	A1, B1, C1, D1, E1, F1, G1, H1,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
 	A2, B2, C2, D2, E2, F2, G2, H2,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
 	A3, B3, C3, D3, E3, F3, G3, H3,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,

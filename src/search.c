@@ -8,24 +8,17 @@ int evaluate_position() {
             int piece = board[square];
             score += material_score[piece];
 			switch(piece) {
-				case WP: 
-				    score += pawn_score[square];
-				    if (board[square - 16] == WP) score -= 100;
-				    break;
+				case WP: score += pawn_score[square]; break;
 				case WN: score += knight_score[square]; break;
 				case WB: score += bishop_score[square]; break;
 				case WR: score += rook_score[square]; break;
 				case WK: score += king_score[square]; break;
-				case BP:
-				    score -= pawn_score[mirror_score[square]];
-				    if (board[square + 16] == BP) score += 100;
-				    break;
+				case BP: score -= pawn_score[mirror_score[square]]; break;
 				case BN: score -= knight_score[mirror_score[square]]; break;
 				case BB: score -= bishop_score[mirror_score[square]]; break;
 				case BR: score -= rook_score[mirror_score[square]]; break;
 				case BK: score -= king_score[mirror_score[square]]; break;
 			}
-            
         }
     } return !side ? score : -score;
 }
@@ -78,8 +71,10 @@ static inline int quiescence_search(int alpha, int beta) {
         int score = -quiescence_search(-beta, -alpha);
         restore_position(&position); ply--;
         if (stopped == 1) break;
-        if (score >= beta) return beta;
-        if (score > alpha) alpha = score;
+        if (score > alpha) {
+            alpha = score;
+            if (score >= beta) return beta;
+        }
     } return alpha;
 }
 
@@ -103,6 +98,9 @@ int negamax_search(int alpha, int beta, int depth) {
         save_position(&position); ply++;
         if (!make_move(move, ALL_MOVES)) { ply--; continue; }
         legal_moves++; int score = 0;
+        
+        
+        //score = -negamax_search(-beta, -alpha, depth - 1);
         if (moves_searched == 0) score = -negamax_search(-beta, -alpha, depth - 1);
         else {
             if ( moves_searched >= 4 && depth >= 3 && in_check == 0 && 
@@ -115,7 +113,10 @@ int negamax_search(int alpha, int beta, int depth) {
                 if((score > alpha) && (score < beta))
                     score = -negamax_search(-beta, -alpha, depth-1);
             }
-        } restore_position(&position); ply--;
+        }
+        
+        
+        restore_position(&position); ply--;
         if (stopped == 1) break;
         moves_searched++;
         if (score > alpha) {
@@ -152,8 +153,8 @@ int search_position(int depth)
     // Iterative deepening
     for (int current_depth = 1; current_depth <= depth; current_depth++) {    
         // Search position with current depth
-        if (stopped == 1) break;
 	    int score = negamax_search(-50000, 50000, current_depth);
+        if (stopped == 1) break;
         
         // Output UCI info
         if (score > -49000 && score < -48000)

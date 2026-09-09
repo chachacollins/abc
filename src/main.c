@@ -7,7 +7,6 @@
 // Run engine in UCI mode
 int main() {
     uci();
-    // 8/8/1p6/p2k2K1/P7/8/7p/6q1 w - - 2 51 
-    // 8/8/1P6/P2K2k1/p7/8/7P/6Q1 w - - 2 51 
+    // r1b1k1nr/pppp1ppp/2N5/8/4q3/2P5/P1P1BPPP/R1BQK2R b KQkq - 0 8  
     return 0;
 }
