@@ -1,5 +1,46 @@
 #include "abc.h"
 
+// Reset time control variables
+void reset_time_control() {
+    quit = 0;
+    movestogo = 30;
+    movetime = -1;
+    time = -1;
+    inc = 0;
+    starttime = 0;
+    stoptime = 0;
+    timeset = 0;
+    stopped = 0;
+}
+
+// Search time settings
+void parse_go(char *command) {
+    reset_time_control();
+    int depth = -1;
+    char *argument = NULL;
+    if ((argument = strstr(command,"infinite"))) {}
+    if ((argument = strstr(command,"binc")) && side == BLACK) inc = atoi(argument + 5);
+    if ((argument = strstr(command,"winc")) && side == WHITE) inc = atoi(argument + 5);
+    if ((argument = strstr(command,"wtime")) && side == WHITE) time = atoi(argument + 6);
+    if ((argument = strstr(command,"btime")) && side == BLACK) time = atoi(argument + 6);
+    if ((argument = strstr(command,"movestogo"))) movestogo = atoi(argument + 10);
+    if ((argument = strstr(command,"movetime"))) movetime = atoi(argument + 9);
+    if ((argument = strstr(command,"depth"))) depth = atoi(argument + 6);
+    if(movetime != -1) {
+        time = movetime;
+        movestogo = 1;
+    } starttime = get_time_ms();
+    depth = depth;
+    if (time != -1) {
+        timeset = 1;
+        time /= movestogo;
+        if (time > 1500) time -= 50;
+        stoptime = starttime + time + inc;
+        if (time < 1500 && inc && depth == 64) stoptime = starttime + inc - 50;
+    } if (depth == -1) depth = 64;
+    printf("time: %d  start: %u  stop: %u  depth: %d  timeset:%d\n", time, starttime, stoptime, depth, timeset);
+    search_position(depth);
+}
 // Encode UCI move to integer
 int parse_move(char *move_str) {
     // Generate moves
@@ -116,7 +157,7 @@ void uci() {
 		}
         
         // Other "go" commands
-        else if (!strncmp(user_input, "go", 2)) search_position(6);
+        else if (!strncmp(user_input, "go", 2)) parse_go(user_input);
         
         // Debug command to print board
         else if (!strncmp(user_input, "board", 5)) print_board();

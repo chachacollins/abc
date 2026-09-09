@@ -3,6 +3,7 @@
 #define ARRAY_BASED_CHESS
     // Standard libraries
     #include <stdio.h>
+    #include <unistd.h>
     #include <string.h>
     
     // OS specific libraries
@@ -74,6 +75,15 @@
     extern int pv_table[64][64];
     extern int pv_length[64];
     extern int ply;
+    extern int quit;
+    extern int movestogo;
+    extern int movetime;
+    extern int time;
+    extern int inc;
+    extern int starttime;
+    extern int stoptime;
+    extern int timeset;
+    extern int stopped;
     extern const int material_score[15];
     extern const int pawn_score[128];
     extern const int knight_score[128];
@@ -104,18 +114,21 @@
     extern void save_position(Position *position);
     extern void restore_position(Position *position);
 
-    // Function in "perft.c"
+    // Functions in "perft.c"
     extern void perft_driver(int depth);
     extern void perft_test(int depth);
 
-    // Function in "search.c"
+    // Functions in "search.c"
     extern int evaluate_position();
     extern int search_position(int depth);
 
-    // Function in "uci.c"
+    // Functions in "uci.c"
     extern int parse_move(char *move_str);
     extern void uci();
     
-    // Function in "misc.c"
+    // Functions in "misc.c"
     extern int get_time_ms();
+    extern void communicate();
+    extern void read_input();
+    extern int input_waiting();
 #endif

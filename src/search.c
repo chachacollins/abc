@@ -30,7 +30,7 @@ int evaluate_position() {
     } return !side ? score : -score;
 }
 
-// Score move for move ordering
+// Score urgency for move ordering
 static inline int score_move(int move) {
     if (pv_table[0][ply] == move) return 20000;
     int score = mvv_lva[board[get_move_source(move)]][board[get_move_target(move)]];         
@@ -63,6 +63,7 @@ static inline void sort_moves(Movelist *moves) {
 
 // quiescence search
 static inline int quiescence_search(int alpha, int beta) {
+    if((nodes & 2047 ) == 0) communicate();
     nodes++;
     int eval = evaluate_position();
     if (eval >= beta) return beta;
@@ -76,6 +77,7 @@ static inline int quiescence_search(int alpha, int beta) {
         if (!make_move(moves->moves[count], ONLY_CAPTURES)) { ply--; continue; }
         int score = -quiescence_search(-beta, -alpha);
         restore_position(&position); ply--;
+        if (stopped == 1) break;
         if (score >= beta) return beta;
         if (score > alpha) alpha = score;
     } return alpha;
@@ -86,6 +88,7 @@ int negamax_search(int alpha, int beta, int depth) {
     int legal_moves = 0;
     int old_alpha = alpha;
     pv_length[ply] = ply;
+    if((nodes & 2047 ) == 0) communicate();
     if  (!depth) return quiescence_search(alpha, beta);
     nodes++;
     int in_check = is_square_attacked(king_square[side], side ^ 1);
@@ -99,13 +102,8 @@ int negamax_search(int alpha, int beta, int depth) {
         Position position;
         save_position(&position); ply++;
         if (!make_move(move, ALL_MOVES)) { ply--; continue; }
-        legal_moves++;
-        
-        // Normal search
-        int score = 0;
+        legal_moves++; int score = 0;
         if (moves_searched == 0) score = -negamax_search(-beta, -alpha, depth - 1);
-        
-        // Late move reduction
         else {
             if ( moves_searched >= 4 && depth >= 3 && in_check == 0 && 
                  get_move_capture(move) == 0 &&
@@ -117,10 +115,8 @@ int negamax_search(int alpha, int beta, int depth) {
                 if((score > alpha) && (score < beta))
                     score = -negamax_search(-beta, -alpha, depth-1);
             }
-        }
-        
-        
-        restore_position(&position); ply--;
+        } restore_position(&position); ply--;
+        if (stopped == 1) break;
         moves_searched++;
         if (score > alpha) {
             history_moves[board[get_move_source(move)]][get_move_target(move)] += depth;
@@ -128,23 +124,16 @@ int negamax_search(int alpha, int beta, int depth) {
 			pv_table[ply][ply] = move;
 			for (int i = ply + 1; i < pv_length[ply + 1]; i++) pv_table[ply][i] = pv_table[ply + 1][i];
 			pv_length[ply] = pv_length[ply + 1];
-            
             if (score >= beta) {
                 killer_moves[1][ply] = killer_moves[0][ply];
                 killer_moves[0][ply] = move;
                 return beta;
             }
         }      
-    }
-    
-    // Checkmate detection
-    if (!legal_moves) {
+    } if (!legal_moves) {
         if (in_check) return -49000 + ply;
         else return 0;
-    }
-    
-    // Return best score
-    return alpha;
+    } return alpha;
 }
 
 // search position
@@ -153,6 +142,7 @@ int search_position(int depth)
     int start = get_time_ms();
     // Clear search
     nodes = 0;
+    stopped = 0;
     ply = 0;
     memset(pv_table, 0, sizeof(pv_table));
     memset(pv_length, 0, sizeof(pv_length));
@@ -160,9 +150,9 @@ int search_position(int depth)
     memset(history_moves, 0, sizeof(history_moves));
     
     // Iterative deepening
-    for (int current_depth = 1; current_depth <= depth; current_depth++)
-    {    
+    for (int current_depth = 1; current_depth <= depth; current_depth++) {    
         // Search position with current depth
+        if (stopped == 1) break;
 	    int score = negamax_search(-50000, 50000, current_depth);
         
         // Output UCI info
