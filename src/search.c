@@ -42,6 +42,7 @@ static inline int score_move(int move) {
     } return score;
 }
 
+// Sort moves based on urgency
 static inline void sort_moves(Movelist *moves) {
     int move_scores[moves->count];
     for (int count = 0; count < moves->count; count++)
@@ -92,24 +93,47 @@ int negamax_search(int alpha, int beta, int depth) {
     Movelist moves[1];
     generate_moves(moves);
     sort_moves(moves);
+    int moves_searched = 0;
     for (int count = 0; count < moves->count; count++) {
         int move = moves->moves[count];
         Position position;
         save_position(&position); ply++;
         if (!make_move(move, ALL_MOVES)) { ply--; continue; }
         legal_moves++;
-        int score = -negamax_search(-beta, -alpha, depth - 1);
+        
+        // Normal search
+        int score = 0;
+        if (moves_searched == 0) score = -negamax_search(-beta, -alpha, depth - 1);
+        
+        // Late move reduction
+        else {
+            if ( moves_searched >= 4 && depth >= 3 && in_check == 0 && 
+                 get_move_capture(move) == 0 &&
+                 get_move_promoted(move) == 0
+               ) score = -negamax_search(-alpha - 1, -alpha, depth - 2);
+            else score = alpha + 1;
+            if(score > alpha) {
+                score = -negamax_search(-alpha - 1, -alpha, depth-1);
+                if((score > alpha) && (score < beta))
+                    score = -negamax_search(-beta, -alpha, depth-1);
+            }
+        }
+        
+        
         restore_position(&position); ply--;
-        if (score >= beta) {
-            killer_moves[1][ply] = killer_moves[0][ply];
-            killer_moves[0][ply] = move;
-            return beta;
-        } else if (score > alpha) {
+        moves_searched++;
+        if (score > alpha) {
             history_moves[board[get_move_source(move)]][get_move_target(move)] += depth;
             alpha = score;
 			pv_table[ply][ply] = move;
 			for (int i = ply + 1; i < pv_length[ply + 1]; i++) pv_table[ply][i] = pv_table[ply + 1][i];
 			pv_length[ply] = pv_length[ply + 1];
+            
+            if (score >= beta) {
+                killer_moves[1][ply] = killer_moves[0][ply];
+                killer_moves[0][ply] = move;
+                return beta;
+            }
         }      
     }
     
@@ -123,11 +147,10 @@ int negamax_search(int alpha, int beta, int depth) {
     return alpha;
 }
 
-// PV  d2d4 g8f6 b1c3 b8c6 e2e4 d7d5
-
 // search position
 int search_position(int depth)
 {
+    int start = get_time_ms();
     // Clear search
     nodes = 0;
     ply = 0;
@@ -143,21 +166,22 @@ int search_position(int depth)
 	    int score = negamax_search(-50000, 50000, current_depth);
         
         // Output UCI info
-        printf("info score cp %d depth %d nodes %ld pv ", score, current_depth, nodes);
+        if (score > -49000 && score < -48000)
+            printf("info score mate %d depth %d nodes %lld time %d pv ", -(score + 49000) / 2 - 1, current_depth, nodes, get_time_ms() - start);
+        else if (score > 48000 && score < 49000)
+            printf("info score mate %d depth %d nodes %lld time %d pv ", (49000 - score) / 2 + 1, current_depth, nodes, get_time_ms() - start);   
+        else printf("info score cp %d depth %d nodes %lld time %d pv ", score, current_depth, nodes, get_time_ms() - start);
         
-        // print PV line
-        for (int i = 0; i < pv_length[0]; i++)
-        {
-            printf("%s%s%c ", square_to_coords[get_move_source(pv_table[0][i])],
-                              square_to_coords[get_move_target(pv_table[0][i])],
-                              promoted_pieces[get_move_promoted(pv_table[0][i])]);
-        }
-        
-        printf("\n");
+        //printf("info score cp %d depth %d nodes %ld pv ", score, current_depth, nodes);
+        for (int i = 0; i < pv_length[0]; i++) {
+            int move = pv_table[0][i];
+            print_move(get_move_source(move), get_move_target(move), get_move_promoted(move));
+        } printf("\n"); fflush(stdout);
     }
-	
+
 	// print best move
-    printf("\nbestmove %s%s%c\n", square_to_coords[get_move_source(pv_table[0][0])],
-                                  square_to_coords[get_move_target(pv_table[0][0])],
-                                  promoted_pieces[get_move_promoted(pv_table[0][0])]);
+    int move = pv_table[0][0];
+    printf("\nbestmove ");
+    print_move(get_move_source(move), get_move_target(move), get_move_promoted(move));
+    printf("\n");
 }
