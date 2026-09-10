@@ -74,6 +74,8 @@
     extern int history_moves[15][128];
     extern int pv_table[64][64];
     extern int pv_length[64];
+    extern unsigned long long repetition_table[1000];
+    extern int repetition_index;
     extern int ply;
     extern int quit;
     extern int movestogo;
@@ -125,6 +127,10 @@
     // Functions in "uci.c"
     extern int parse_move(char *move_str);
     extern void uci();
+    
+    
+    extern void init_random_keys();
+    extern int generate_hash_key();
     
     // Functions in "misc.c"
     extern int get_time_ms();

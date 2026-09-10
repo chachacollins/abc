@@ -15,6 +15,12 @@ void set_board(char *fen) {
     castle = EMPTY;
     enpassant = NONE;
     
+    // Reset repetition index
+    repetition_index = 0;
+    
+    // Reset repetition table
+    memset(repetition_table, 0ULL, sizeof(repetition_table));
+    
     // Set up pieces
     for (int rank = 0; rank < 8; rank++) {
         for (int file = 0; file < 16; file++) {
@@ -83,7 +89,8 @@ void print_board() {
     printf("    Side:     %s\n", (side == WHITE) ? "white": "black");
     printf("    Castling:  %c%c%c%c\n", K ? 'K' : '-', Q ? 'Q' : '-', k ? 'k' : '-', q ? 'q' : '-');
     printf("    Enpassant:   %s\n", (enpassant == NONE)? "no" : square_to_coords[enpassant]);
-    printf("    King square: %s\n\n", square_to_coords[king_square[side]]);
+    printf("    King square: %s\n", square_to_coords[king_square[side]]);
+    printf("    Hash:        %d\n\n", generate_hash_key());
 }
 
 // Print move

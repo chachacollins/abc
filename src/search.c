@@ -12,13 +12,11 @@ int evaluate_position() {
 				case WN: score += knight_score[square]; break;
 				case WB: score += bishop_score[square]; break;
 				case WR: score += rook_score[square]; break;
-				case WQ: score += queen_score[square]; break;
 				case WK: score += king_score[square]; break;
 				case BP: score -= pawn_score[mirror_score[square]]; break;
 				case BN: score -= knight_score[mirror_score[square]]; break;
 				case BB: score -= bishop_score[mirror_score[square]]; break;
 				case BR: score -= rook_score[mirror_score[square]]; break;
-				case BQ: score -= queen_score[mirror_score[square]]; break;
 				case BK: score -= king_score[mirror_score[square]]; break;
 			}
         }
@@ -56,6 +54,13 @@ static inline void sort_moves(Movelist *moves) {
     }    
 }
 
+// Position repetition detection
+static inline int is_repetition() {
+    for (int index = 0; index < repetition_index; index++)
+        if (repetition_table[index] == generate_hash_key()) return 1;
+    return 0;
+}
+
 // quiescence search
 static inline int quiescence_search(int alpha, int beta) {
     if((nodes & 2047 ) == 0) communicate();
@@ -85,6 +90,7 @@ int negamax_search(int alpha, int beta, int depth) {
     int legal_moves = 0;
     int old_alpha = alpha;
     pv_length[ply] = ply;
+    if (ply && is_repetition()) return 0;
     if((nodes & 2047 ) == 0) communicate();
     if  (!depth) return quiescence_search(alpha, beta);
     nodes++;
@@ -98,7 +104,9 @@ int negamax_search(int alpha, int beta, int depth) {
         int move = moves->moves[count];
         Position position;
         save_position(&position); ply++;
-        if (!make_move(move, ALL_MOVES)) { ply--; continue; }
+        repetition_index++;
+        repetition_table[repetition_index] = generate_hash_key();
+        if (!make_move(move, ALL_MOVES)) { ply--; repetition_index--; continue; }
         legal_moves++; int score = 0;
         if (moves_searched == 0) score = -negamax_search(-beta, -alpha, depth - 1);
         else {
@@ -112,7 +120,7 @@ int negamax_search(int alpha, int beta, int depth) {
                 if((score > alpha) && (score < beta))
                     score = -negamax_search(-beta, -alpha, depth-1);
             }
-        } restore_position(&position); ply--;
+        } restore_position(&position); ply--; repetition_index--;
         if (stopped == 1) break;
         moves_searched++;
         if (score > alpha) {

@@ -92,6 +92,12 @@ int history_moves[15][128];
 int pv_table[64][64];
 int pv_length[64];
 
+// Position repetitions
+unsigned long long repetition_table[1000];
+
+// Repetition table index
+int repetition_index;
+
 // Half move counter
 int ply = 0;
 

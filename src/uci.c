@@ -75,6 +75,9 @@ int parse_move(char *move_str) {
 
 // UCI protocol
 void uci() {
+    // Keys for position hashing
+    init_random_keys();
+    
     // User input
 	char user_input[2400];
 	
@@ -119,6 +122,8 @@ void uci() {
 				if(*moves == ' ') {
 					*moves++;
 					make_move(parse_move(moves), ALL_MOVES);
+                    repetition_index++;
+                    repetition_table[repetition_index] = generate_hash_key();
 				} *moves++;
 			}
 		}
@@ -142,6 +147,8 @@ void uci() {
 					if(*moves == ' ') {
 						*moves++;
 						make_move(parse_move(moves), ALL_MOVES);
+                        repetition_index++;
+                        repetition_table[repetition_index] = generate_hash_key();
 					} *moves++;
 				}
 			}
