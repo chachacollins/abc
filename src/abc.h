@@ -69,15 +69,22 @@
     extern int castling_side[2][2];
     extern int pawn_starting_rank[];
     extern int pawn_promoting_rank[];
+    extern int random_state;
+    extern int piece_keys[7][128];
     extern long nodes;
     extern int mvv_lva[15][15];
     extern int killer_moves[2][64];
     extern int history_moves[15][128];
     extern int pv_table[64][64];
     extern int pv_length[64];
-    extern unsigned long long repetition_table[1000];
+    extern int repetition_table[1000];
     extern int repetition_index;
     extern int ply;
+    extern int opening_phase_score;
+    extern int endgame_phase_score;
+    extern int material_score[2][15];
+    extern int positional_score[2][7][128];
+    extern int mirror_score[128];
     extern int quit;
     extern int movestogo;
     extern int movetime;
@@ -87,11 +94,6 @@
     extern int stoptime;
     extern int timeset;
     extern int stopped;
-    extern int opening_phase_score;
-    extern int endgame_phase_score;
-    extern int material_score[2][15];
-    extern int positional_score[2][7][128];
-    extern int mirror_score[128];
 
     // Functions in "io.c"
     extern void set_board(char *fen);
@@ -118,18 +120,26 @@
     extern void perft_driver(int depth);
     extern void perft_test(int depth);
 
+    // Functions in "hash.c"
+    extern int get_random_32_number();
+    extern void init_random_keys();
+    extern int generate_hash_key();
+
     // Functions in "search.c"
     extern int evaluate_position();
+    extern int score_move(int move);
+    extern void sort_moves(Movelist *moves);
+    extern int is_repetition();
+    extern int quiescence_search(int alpha, int beta);
+    extern int negamax_search(int alpha, int beta, int depth);
     extern int search_position(int depth);
 
     // Functions in "uci.c"
+    extern void reset_time_control();
+    extern void parse_go(char *command);
     extern int parse_move(char *move_str);
     extern void uci();
-    
-    
-    extern void init_random_keys();
-    extern int generate_hash_key();
-    
+
     // Functions in "misc.c"
     extern int get_time_ms();
     extern void communicate();

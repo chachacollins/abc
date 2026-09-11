@@ -104,7 +104,7 @@ int evaluate_position()
 }
 
 // Score urgency for move ordering
-static inline int score_move(int move) {
+int score_move(int move) {
     if (pv_table[0][ply] == move) return 20000;
     int score = mvv_lva[board[get_move_source(move)]][board[get_move_target(move)]];         
     if (get_move_capture(move)) score += 10000;
@@ -116,7 +116,7 @@ static inline int score_move(int move) {
 }
 
 // Sort moves based on urgency
-static inline void sort_moves(Movelist *moves) {
+void sort_moves(Movelist *moves) {
     int move_scores[moves->count];
     for (int count = 0; count < moves->count; count++)
         move_scores[count] = score_move(moves->moves[count]);
@@ -135,22 +135,33 @@ static inline void sort_moves(Movelist *moves) {
 }
 
 // Position repetition detection
-static inline int is_repetition() {
+int is_repetition() {
     for (int index = 0; index < repetition_index; index++)
         if (repetition_table[index] == generate_hash_key()) return 1;
     return 0;
 }
 
-// quiescence search
-static inline int quiescence_search(int alpha, int beta) {
+// Quiescence search
+int quiescence_search(int alpha, int beta) {
+    // Listen to UCI "stop" command
     if((nodes & 2047 ) == 0) communicate();
+    
+    // Count nodes
     nodes++;
+    
+    // Static evaluation
     int eval = evaluate_position();
     if (eval >= beta) return beta;
     if (eval > alpha) alpha = eval;
+    
+    // Generate moves
     Movelist moves[1];
     generate_moves(moves);
+    
+    // Move ordering
     sort_moves(moves);
+    
+    // Search best move
     for (int count = 0; count < moves->count; count++) {      
         Position position;
         save_position(&position); ply++;
@@ -165,31 +176,52 @@ static inline int quiescence_search(int alpha, int beta) {
     } return alpha;
 }
 
-// negamax search
+// Negamax search
 int negamax_search(int alpha, int beta, int depth) {
+    // Init params
     int legal_moves = 0;
     int old_alpha = alpha;
     pv_length[ply] = ply;
+    
+    // 3 fold repetition detection
     if (ply && is_repetition()) return 0;
+    
+    // Listen to UCI "stop" command
     if((nodes & 2047 ) == 0) communicate();
+    
+    // Search until no captures left
     if  (!depth) return quiescence_search(alpha, beta);
+    
+    // Count nodes
     nodes++;
+    
+    // Search deeper if in check
     int in_check = is_square_attacked(king_square[side], side ^ 1);
     if (in_check) depth++;
+    
+    // Generate moves
     Movelist moves[1];
     generate_moves(moves);
+    
+    // Move ordering
     sort_moves(moves);
     int moves_searched = 0;
+    
+    // Search best move
     for (int count = 0; count < moves->count; count++) {
         int move = moves->moves[count];
         Position position;
         save_position(&position); ply++;
         repetition_index++;
         repetition_table[repetition_index] = generate_hash_key();
+        
+        // Make move
         if (!make_move(move, ALL_MOVES)) { ply--; repetition_index--; continue; }
         legal_moves++; int score = 0;
+        
+        // Normal search
         if (moves_searched == 0) score = -negamax_search(-beta, -alpha, depth - 1);
-        else {
+        else { // Late move reduction
             if ( moves_searched >= 4 && depth >= 3 && in_check == 0 && 
                  get_move_capture(move) == 0 &&
                  get_move_promoted(move) == 0
@@ -200,22 +232,34 @@ int negamax_search(int alpha, int beta, int depth) {
                 if((score > alpha) && (score < beta))
                     score = -negamax_search(-beta, -alpha, depth-1);
             }
-        } restore_position(&position); ply--; repetition_index--;
+        }
+        
+        // Take back
+        restore_position(&position); ply--; repetition_index--;
         if (stopped == 1) break;
         moves_searched++;
+        
+        // Found better move
         if (score > alpha) {
             history_moves[board[get_move_source(move)]][get_move_target(move)] += depth;
             alpha = score;
+            
+            // Store PV
 			pv_table[ply][ply] = move;
 			for (int i = ply + 1; i < pv_length[ply + 1]; i++) pv_table[ply][i] = pv_table[ply + 1][i];
 			pv_length[ply] = pv_length[ply + 1];
+            
+            // Beta cutoff
             if (score >= beta) {
                 killer_moves[1][ply] = killer_moves[0][ply];
                 killer_moves[0][ply] = move;
                 return beta;
             }
         }      
-    } if (!legal_moves) {
+    }
+    
+    // Checkmate / Stalemate detection
+    if (!legal_moves) {
         if (in_check) return -49000 + ply;
         else return 0;
     } return alpha;

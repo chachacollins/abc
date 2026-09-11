@@ -40,6 +40,7 @@ void parse_go(char *command) {
     } if (depth == -1) depth = 64;
     search_position(depth);
 }
+
 // Encode UCI move to integer
 int parse_move(char *move_str) {
     // Generate moves

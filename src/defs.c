@@ -60,6 +60,12 @@ int castling_side[2][2] = {{1, 2}, {4, 8}};
 int pawn_starting_rank[] = {0x60, 0x10};
 int pawn_promoting_rank[] = {0x00, 0x70};
 
+// Random seed
+int random_state = 12345;
+
+// Random piece keys
+int piece_keys[7][128];
+
 // Nodes searched
 long nodes = 0;
 
@@ -93,39 +99,13 @@ int pv_table[64][64];
 int pv_length[64];
 
 // Position repetitions
-unsigned long long repetition_table[1000];
+int repetition_table[1000];
 
 // Repetition table index
 int repetition_index;
 
 // Half move counter
 int ply = 0;
-
-int quit = 0;
-
-// UCI "movestogo" command moves counter
-int movestogo = 30;
-
-// UCI "movetime" command time counter
-int movetime = -1;
-
-// UCI "time" command holder (ms)
-int time = -1;
-
-// UCI "inc" command's time increment holder
-int inc = 0;
-
-// UCI "starttime" command time holder
-int starttime = 0;
-
-// UCI "stoptime" command time holder
-int stoptime = 0;
-
-// variable to flag time control availability
-int timeset = 0;
-
-// variable to flag when the time is up
-int stopped = 0;
 
 // Game phase thresholds
 int opening_phase_score = 6192;
@@ -296,3 +276,30 @@ int mirror_score[128] = {
 	A7, B7, C7, D7, E7, F7, G7, H7,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
 	A8, B8, C8, D8, E8, F8, G8, H8,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE
 };
+
+// UCI "quit" command flag
+int quit = 0;
+
+// UCI "movestogo" command moves counter
+int movestogo = 30;
+
+// UCI "movetime" command time counter
+int movetime = -1;
+
+// UCI "time" command holder (ms)
+int time = -1;
+
+// UCI "inc" command's time increment holder
+int inc = 0;
+
+// UCI "starttime" command time holder
+int starttime = 0;
+
+// UCI "stoptime" command time holder
+int stoptime = 0;
+
+// variable to flag time control availability
+int timeset = 0;
+
+// variable to flag when the time is up
+int stopped = 0;
