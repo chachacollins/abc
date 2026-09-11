@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Header File — ABC</title>
-    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <main class="book">
@@ -91,6 +91,7 @@ extern void print_move(int source, int target, int promoted);</code></pre>
             <p><code>movegen.c</code> contains the functions responsible for encoding moves, generating legal moves, detecting attacks, making moves, and saving or restoring positions.</p>
             <p><code>perft.c</code> contains the perft functions used to test move generation. <code>hash.c</code> contains the random-number and position-hashing functions. <code>search.c</code> contains evaluation, move ordering, quiescence search, negamax, and the main search function.</p>
             <p>The UCI interface lives in <code>uci.c</code>, while <code>misc.c</code> contains utility functions such as time measurement, input handling, and communication with the GUI.</p>
+            <p>NOTE: Since not all the functions are used globally there is no need to declare those extern, however they have been declared just for you to see all the functions available</p>
             <h3>The Header as the Engine's Interface</h3>
             <p>With all of these declarations in one place, <code>abc.h</code> acts as the interface between the different components of ABC. A source file does not need to know how another component is implemented. It only needs to know which functions and data structures are available.</p>
             <p>This is one of the main reasons the engine can be divided into separate source files without becoming difficult to connect together. The implementation stays in the <code>.c</code> files, while the shared definitions and declarations stay in <code>abc.h</code>.</p>

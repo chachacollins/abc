@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Definitions — ABC</title>
-    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <main class="book">
@@ -138,7 +138,7 @@ H8 = 11</code></pre>
             <p>The table contains one row for each internal piece type used by ABC. Pawns are skipped, while sliding and leaping pieces receive the offsets appropriate for their movement patterns.</p>
             <p>The knight, for example, uses offsets such as <code>-33</code>, <code>-31</code>, <code>33</code>, <code>31</code>, <code>-18</code>, <code>-14</code>, <code>18</code>, and <code>14</code>. These represent the eight possible destinations of a knight from a given square.</p>
             <p>Bishops use the four diagonal offsets, while rooks use the four horizontal and vertical offsets. Queens combine both sets, giving them all eight directions. The exact way these offsets are used to walk through the board will appear later when we examine move generation.</p>
-            <h4>Number of Movement Directions</h4>
+            <h3>Number of Movement Directions</h3>
             <p>The companion <code>offset_length</code> array tells the engine how many offsets are valid for each piece:</p>
             <pre><code>int offset_length[7] = { 0, 8, 0, 8, 4, 4, 8 };</code></pre>
             <p>This is important because the rows of <code>move_offsets</code> all have room for eight values, but not every piece uses all eight. A bishop needs only four directions, a rook needs four, while a knight and queen use eight.</p>
@@ -150,12 +150,161 @@ H8 = 11</code></pre>
 int pawn_promoting_rank[] = {0x00, 0x70};</code></pre>
             <p>These arrays store the relevant 0x88 board boundaries for each side. The first element corresponds to <code>WHITE</code>, while the second corresponds to <code>BLACK</code>.</p>
             <p>For the starting ranks, White's value is <code>0x60</code> and Black's is <code>0x10</code>. In the 0x88 representation, these values identify the ranks from which each side's pawns begin. This allows the move-generation code to determine whether a pawn is still on its starting rank and can therefore consider its initial two-square move.</p>
-            <p>The promoting ranks work in the opposite direction:</p>
-            <pre><code>WHITE = 0x00
-BLACK = 0x70</code></pre>
-            <p>White pawns promote when they reach the eighth rank, which begins at <code>0x00</code> in the 0x88 representation. Black pawns promote when they reach the first rank, which begins at <code>0x70</code>.</p>
+            <p>An important property of the 0x88 representation is that an entire rank occupies exactly <code>16</code> consecutive array positions. The lower four bits represent the file, while the upper bits identify the rank:</p>
+            <pre><code>a8 = 0x00    h8 = 0x07
+a7 = 0x10    h7 = 0x17
+a6 = 0x20    h6 = 0x27
+...
+a2 = 0x60    h2 = 0x67
+a1 = 0x70    h1 = 0x77</code></pre>
+            <p>This makes a rank especially easy to identify. The first square of a rank is always aligned to a multiple of <code>0x10</code>, and every valid chess square on that rank lies between that value and seven positions later.</p>
+            <p>This is why <code>0x60</code> represents White's second rank and <code>0x10</code> represents Black's seventh rank. They are the starting positions of the two pawn armies, and the rest of each rank can be reached simply by adding the file offset from <code>0</code> through <code>7</code>.</p>
+            <p>The same property makes the promotion ranks equally convenient:</p>
+            <pre><code>WHITE = 0x00    a8
+BLACK = 0x70    a1</code></pre>
+            <p>White pawns promote when they reach the eighth rank, whose first square is <code>0x00</code>. Black pawns promote when they reach the first rank, whose first square is <code>0x70</code>. Because an entire rank occupies one 16-position block, the engine can identify these ranks using a single boundary value rather than storing all eight squares individually.</p>
             <p>Keeping these values in arrays indexed by side lets the engine use the same general logic for both colors. Instead of hard-coding separate rank checks for White and Black, the appropriate boundary can be selected using the current side.</p>
-            <p>These two small tables provide the move generator with the positional information it needs for the two special stages of a pawn's journey: its initial move and its promotion. The actual use of these values will appear later when we examine pawn move generation and promotion handling.</p>
+            <p>These small tables provide the move generator with the positional information it needs for the two special stages of a pawn's journey: its initial move and its promotion. The actual use of these values will appear later when we examine pawn move generation and promotion handling.</p>
+            <h3>Random State and Piece Keys</h3>
+            <p>ABC also reserves a small amount of global data for its random-number state and piece keys:</p>
+            <pre><code>int random_state = 12345;
+
+int piece_keys[7][128];</code></pre>
+            <p>The <code>random_state</code> variable provides the initial state for the engine's pseudo-random number generation. The <code>piece_keys</code> table stores a separate key for each piece type and board square.</p>
+            <p>These keys are used to represent board positions with compact numerical values. The table therefore has dimensions for both the piece type and its square on the 0x88 board.</p>
+            <p>The complete purpose of these keys, and how ABC uses them to build and maintain its position hashes, will be explained later when we examine <strong>hashing</strong> and <strong>3-fold repetition detection</strong>.</p>
+            <h3>Nodes Searched</h3>
+            <p>ABC keeps a counter for the number of search nodes examined during a search:</p>
+            <pre><code>long nodes = 0;</code></pre>
+            <p>The <code>nodes</code> variable is incremented as the engine searches positions. It provides a simple measure of how much work the search has performed and is also useful when reporting search information such as the number of nodes searched during a negamax search.</p>
+            <p>The counter is reset when a new search begins and grows throughout the search. Unlike an evaluation score, it does not describe the quality of a position; it simply measures the amount of search work performed.</p>
+            <h3>Most Valuable Victim, Least Valuable Attacker</h3>
+            <p>When ABC generates moves, it does not search every move in an arbitrary order. The order in which moves are searched has a major effect on the efficiency of alpha-beta search. If strong moves are examined first, the search can discover good bounds earlier and prune more of the remaining tree.</p>
+            <p>One of the simplest move-ordering techniques used by ABC is <strong>MVV-LVA</strong>, which stands for <strong>Most Valuable Victim, Least Valuable Attacker</strong>.</p>
+            <pre><code>int mvv_lva[15][15] = {
+     0,   0,   0,   0,   0,   0,   0,  0,  0,  0,   0,   0,   0,   0,   0,
+     0, 600, 100, 200, 300, 400, 500,  0,  0,  600, 100, 200, 300, 400, 500,
+     0, 605, 105, 205, 305, 405, 505,  0,  0,  605, 105, 205, 305, 405, 505,
+     0, 604, 104, 204, 304, 404, 504,  0,  0,  604, 104, 204, 304, 404, 504,
+     0, 603, 103, 203, 303, 403, 503,  0,  0,  603, 103, 203, 303, 403, 503,
+     0, 602, 102, 202, 302, 402, 502,  0, 0, 602, 102, 202, 302, 402, 502,
+     0, 601, 101, 201, 301, 401, 501,  0,  0,  601, 101, 201, 301, 401, 501,
+     0,   0,   0,   0,   0,   0,   0,  0,  0,    0,   0,   0,   0,   0,   0,
+     0,   0,   0,   0,   0,   0,   0,  0,   0,    0,   0,   0,   0,   0,   0,
+     0, 600, 100, 200, 300, 400, 500,  0,  0,  600, 100, 200, 300, 400, 500,
+     0, 605, 105, 205, 305, 405, 505,  0,  0,  605, 105, 205, 305, 405, 505,
+     0, 604, 104, 204, 304, 404, 504,  0,  0, 604, 104, 204, 304, 404, 504,
+     0, 603, 103, 203, 303, 403, 503,  0,  0, 603, 103, 203, 303, 403, 503,
+     0, 602, 102, 202, 302, 402, 502,  0,  0, 602, 102, 202, 302, 402, 502,
+     0, 601, 101, 201, 301, 401, 501,  0,  0, 601, 101, 201, 301, 401, 501
+};</code></pre>
+            <p>The table is indexed by two piece values: the <strong>attacking piece</strong> and the <strong>captured piece</strong>. The resulting number is a score that can be used to rank captures during move ordering.</p>
+            <p>The basic idea is simple: capturing a more valuable piece should generally be considered more promising, while capturing it with a less valuable attacker is especially attractive. For example, a pawn capturing a queen should be searched before a queen capturing a pawn.</p>
+            <p>The numbers in the table are deliberately arranged so that the value of the captured piece has the largest influence. The basic capture values are:</p>
+            <pre><code>pawn   = 100
+knight = 200
+bishop = 300
+rook   = 400
+queen  = 500
+king   = 600</code></pre>
+            <p>The attacker then provides a small adjustment. A lower-valued attacking piece receives a slightly higher score than a higher-valued attacking piece. This produces the <strong>least valuable attacker</strong> part of MVV-LVA.</p>
+            <p>For example, consider two captures of a queen:</p>
+            <pre><code>pawn captures queen   → 600 + 5 = 605
+knight captures queen  → 600 + 4 = 604
+bishop captures queen  → 600 + 3 = 603
+rook captures queen    → 600 + 2 = 602
+queen captures queen   → 600 + 1 = 601</code></pre>
+            <p>Therefore, all of these captures target the same valuable victim, but the pawn capture receives the highest score because the pawn is the least valuable attacker.</p>
+            <p>The same pattern appears for every other victim. Capturing a rook starts with <code>400</code>, capturing a bishop starts with <code>300</code>, and so on. The small attacker bonus then determines the ordering between captures of the same victim.</p>
+            <p>The table contains <code>15 × 15</code> entries because ABC's piece representation provides enough numerical values for the empty square, the white pieces, unused values, and the black pieces. The duplicated-looking sections correspond to the white and black piece ranges. The entries that do not represent meaningful captures are simply <code>0</code>.</p>
+            <p>The important point is that MVV-LVA does <strong>not</strong> determine whether a capture is good or bad. It is only a move-ordering heuristic. A pawn taking a queen may receive a very high MVV-LVA score, but the resulting position still has to be searched to determine whether the capture is actually sound.</p>
+            <p>Its real value comes from alpha-beta search. By trying promising captures first, ABC has a better chance of finding strong moves early and producing cutoffs that prevent the engine from searching unnecessary branches.</p>
+            <p>The table therefore acts as a small precomputed scoring system for one of the simplest and most useful move-ordering heuristics in a chess engine.</p>
+            <h3>Move Ordering Heuristics</h3>
+            <p>After MVV-LVA, ABC uses two more pieces of global data to improve move ordering: <strong>killer moves</strong> and <strong>history moves</strong>.</p>
+            <p>The <code>killer_moves</code> table stores moves that caused a <strong>beta cutoff</strong> during the search:</p>
+            <pre><code>int killer_moves[2][128];</code></pre>
+            <p>A beta cutoff occurs when the engine discovers that a move is already good enough to exceed the current search window. Once this happens, there is no reason to examine the remaining moves in that position.</p>
+            <p>The important observation is that a move that produces a cutoff in one position can sometimes be a strong candidate in other positions during the search, even when it is not a capture. ABC therefore remembers these moves and can try them earlier when ordering moves.</p>
+            <p>The first dimension provides two killer-move slots. This allows ABC to remember two useful cutoff moves for a given search position. The second dimension contains the 128 entries of the 0x88 board representation, allowing the table to be indexed using board-square values.</p>
+            <p>Killer moves are therefore not chosen because of the material value of a capture. Unlike MVV-LVA, they are based on what actually happened during the search: a move caused a cutoff, so ABC gives it a higher priority when ordering moves later.</p>
+            <p>The second table is used for the <strong>history heuristic</strong>:</p>
+            <pre><code>int history_moves[15][128];</code></pre>
+            <p>While killer moves remember a small number of specific moves, the history table records a broader history of how successful moves have been during the search. Its dimensions correspond to the engine's piece values and the 128 entries of the 0x88 board representation.</p>
+            <p>This allows ABC to associate a history score with a particular piece moving to a particular square. When a quiet move repeatedly proves useful during the search, its history score can become higher. When ABC later encounters the same piece-to-square move, that accumulated score can be used to give the move a higher position in the move list.</p>
+            <p>The history heuristic therefore provides a broader form of memory than killer moves. Killer moves answer the question <em>“Which moves recently caused cutoffs?”</em>, while history scores answer something closer to <em>“Which piece-to-square moves have generally been successful during the search?”</em></p>
+            <p>Together, these two tables complement MVV-LVA. Captures can be ordered using information about the attacking and captured pieces, while quiet moves can be prioritized using information gathered from previous parts of the search.</p>
+            <p>The complete way ABC combines killer moves, history scores, MVV-LVA, and the other move-ordering information will appear later when we examine <strong>move ordering</strong>.</p>
+            <h3>Principal Variation</h3>
+            <p>ABC also stores the <strong>principal variation</strong> found during the search:</p>
+            <pre><code>int pv_table[64][64];
+int pv_length[64];</code></pre>
+            <p>The value <code>64</code> represents the maximum search ply that ABC supports. For each ply, <code>pv_table</code> stores the sequence of moves that currently forms the best line found by the search, while <code>pv_length</code> records how many moves are present in that line.</p>
+            <p>The principal variation is the line of play the engine considers best from the current position. ABC uses this information to display the search result and its predicted sequence of moves through the UCI interface.</p>
+            <p>The details of how the principal variation is built and updated during alpha-beta search will appear later when we examine the search algorithm.</p>
+            <h3>Position Repetitions</h3>
+            <p>ABC also keeps a table for positions that have occurred during the current game:</p>
+            <pre><code>int repetition_table[1000];
+int repetition_index;</code></pre>
+            <p>The <code>repetition_table</code> stores the position hashes encountered during the game, while <code>repetition_index</code> keeps track of the current position in that table.</p>
+            <p>ABC uses this information to detect repeated positions and determine whether the <strong>threefold repetition</strong> rule can apply.</p>
+            <h3>Half-Move Counter</h3>
+            <p>ABC also keeps track of the current search ply:</p>
+            <pre><code>int ply = 0;</code></pre>
+            <p>The <code>ply</code> variable represents the current depth within the search tree. It starts at <code>0</code> at the root position and increases as the engine searches deeper into subsequent positions.</p>
+            <p>ABC uses this value to access data associated with the current search level, such as principal variation information and move-ordering heuristics.</p>
+            <h3>Game Phase and Material Scores</h3>
+            <p>ABC also defines thresholds and material values used to distinguish different stages of the game:</p>
+            <pre><code>int opening_phase_score = 6192;
+int endgame_phase_score = 518;
+
+int material_score[2][15] = {
+    0, 12000, 82, 337, 365, 477, 1025, 0, 0, -12000, -82, -337, -365, -477, -1025,
+    0, 12000, 94, 281, 297, 512,  936, 0, 0, -12000, -94, -281, -297, -512,  -936
+};</code></pre>
+            <p>The <code>opening_phase_score</code> and <code>endgame_phase_score</code> values define the boundaries used by ABC to classify a position as an <strong>opening</strong>, <strong>middlegame</strong>, or <strong>endgame</strong>.</p>
+            <p>The <code>material_score</code> table contains separate piece values for the opening and endgame. This allows ABC to give pieces slightly different values depending on the stage of the game. For example, a pawn is worth <code>82</code> in the opening but <code>94</code> in the endgame.</p>
+            <p>The table also contains negative values for the black pieces, allowing the same material system to represent both sides with a single set of values.</p>
+            <p>The material weights, together with the positional scores introduced next, are based on <a href="https://chessprogramming.org/PeSTO's_Evaluation_Function"><strong>PeSTO's Evaluation Function</strong></a> from the Chess Programming Wiki.</p>
+            <h3>Positional Scores</h3>
+            <p>In addition to material values, ABC assigns different scores to pieces depending on the square they occupy. These <strong>positional scores</strong> are stored separately for the opening and endgame:</p>
+            <pre><code>int positional_score[2][7][128] = {
+    { /* Opening square values */ },
+    { /* Endgame square values */ }
+};</code></pre>
+            <p>The first dimension selects the game phase, the second selects the piece type, and the third corresponds to the 128 squares of the 0x88 board. This gives ABC a separate positional value for each piece on each valid board square.</p>
+            <p>For example, the opening table contains values for the king, knight, bishop, rook, queen, and pawn. A piece can therefore receive a bonus or penalty depending on where it is placed, rather than being evaluated only by its material value.</p>
+            <p>Because the tables contain separate opening and endgame values, ABC can evaluate the same position differently depending on the stage of the game. A square that is useful for a piece during the opening may not have the same strategic value in the endgame.</p>
+            <h3>Mirroring the Board for Black</h3>
+            <p>The positional tables are stored from White's perspective. To use the same tables for Black, ABC defines a <code>mirror_score</code> lookup table:</p>
+            <pre><code>int mirror_score[128] = {
+    A1, B1, C1, D1, E1, F1, G1, H1,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    A2, B2, C2, D2, E2, F2, G2, H2,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    A3, B3, C3, D3, E3, F3, G3, H3,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    A4, B4, C4, D4, E4, F4, G4, H4,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    A5, B5, C5, D5, E5, F5, G5, H5,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    A6, B6, C6, D6, E6, F6, G6, H6,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    A7, B7, C7, D7, E7, F7, G7, H7,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    A8, B8, C8, D8, E8, F8, G8, H8,    NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE
+};</code></pre>
+            <p>This table maps each square to the corresponding square from the opposite side's perspective. For example, <code>A8</code> maps to <code>A1</code>, <code>E8</code> maps to <code>E1</code>, and <code>A2</code> maps to <code>A7</code>.</p>
+            <p>This allows ABC to reuse the same positional tables for both colors. Instead of maintaining completely separate square-value tables for White and Black, the engine can mirror Black's square before looking up its positional score.</p>
+            <h3>UCI Time Control and Search State</h3>
+            <p>The final group of variables in <code>defs.c</code> stores information received through the <strong>UCI</strong> protocol and keeps track of the engine's time-controlled search:</p>
+            <pre><code>int quit = 0;
+int movestogo = 30;
+int movetime = -1;
+int time = -1;
+int inc = 0;
+int starttime = 0;
+int stoptime = 0;
+int timeset = 0;
+int stopped = 0;</code></pre>
+            <p>The <code>quit</code> flag is set when the GUI sends the UCI <code>quit</code> command, allowing the engine to terminate its main loop.</p>
+            <p><code>movestogo</code>, <code>movetime</code>, <code>time</code>, and <code>inc</code> store the time-control information supplied by the GUI. They represent the number of moves remaining, a fixed amount of time for the current move, the available clock time, and the time increment respectively.</p>
+            <p>The <code>starttime</code> and <code>stoptime</code> variables hold the calculated start and deadline times for a search. The <code>timeset</code> flag indicates whether a time limit has actually been established.</p>
+            <p>Finally, <code>stopped</code> indicates that the current search should stop. Together, these variables allow ABC to receive UCI time controls, calculate when a search must end, and communicate that information to the search code.</p>
+            <p>The complete handling of UCI commands and time-controlled searching will appear later when we examine <strong>UCI communication and search control</strong>.</p>
         </article>
     </main>
 </body>
