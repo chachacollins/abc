@@ -214,42 +214,18 @@ int negamax_search(int alpha, int beta, int depth) {
         save_position(&position); ply++;
         repetition_index++;
         repetition_table[repetition_index] = generate_hash_key();
-        
-        // Make move
         if (!make_move(move, ALL_MOVES)) { ply--; repetition_index--; continue; }
         legal_moves++; int score = 0;
-        
-        // Normal search
-        if (moves_searched == 0) score = -negamax_search(-beta, -alpha, depth - 1);
-        else { // Late move reduction
-            if ( moves_searched >= 4 && depth >= 3 && in_check == 0 && 
-                 get_move_capture(move) == 0 &&
-                 get_move_promoted(move) == 0
-               ) score = -negamax_search(-alpha - 1, -alpha, depth - 2);
-            else score = alpha + 1;
-            if(score > alpha) {
-                score = -negamax_search(-alpha - 1, -alpha, depth-1);
-                if((score > alpha) && (score < beta))
-                    score = -negamax_search(-beta, -alpha, depth-1);
-            }
-        }
-        
-        // Take back
+        score = -negamax_search(-beta, -alpha, depth - 1);
         restore_position(&position); ply--; repetition_index--;
         if (stopped == 1) break;
         moves_searched++;
-        
-        // Found better move
         if (score > alpha) {
             history_moves[board[get_move_source(move)]][get_move_target(move)] += depth;
             alpha = score;
-            
-            // Store PV
 			pv_table[ply][ply] = move;
 			for (int i = ply + 1; i < pv_length[ply + 1]; i++) pv_table[ply][i] = pv_table[ply + 1][i];
 			pv_length[ply] = pv_length[ply + 1];
-            
-            // Beta cutoff
             if (score >= beta) {
                 killer_moves[1][ply] = killer_moves[0][ply];
                 killer_moves[0][ply] = move;
