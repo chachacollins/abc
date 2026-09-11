@@ -223,10 +223,10 @@ queen captures queen   → 600 + 1 = 601</code></pre>
             <h3>Move Ordering Heuristics</h3>
             <p>After MVV-LVA, ABC uses two more pieces of global data to improve move ordering: <strong>killer moves</strong> and <strong>history moves</strong>.</p>
             <p>The <code>killer_moves</code> table stores moves that caused a <strong>beta cutoff</strong> during the search:</p>
-            <pre><code>int killer_moves[2][128];</code></pre>
+            <pre><code>int killer_moves[2][64];</code></pre>
             <p>A beta cutoff occurs when the engine discovers that a move is already good enough to exceed the current search window. Once this happens, there is no reason to examine the remaining moves in that position.</p>
             <p>The important observation is that a move that produces a cutoff in one position can sometimes be a strong candidate in other positions during the search, even when it is not a capture. ABC therefore remembers these moves and can try them earlier when ordering moves.</p>
-            <p>The first dimension provides two killer-move slots. This allows ABC to remember two useful cutoff moves for a given search position. The second dimension contains the 128 entries of the 0x88 board representation, allowing the table to be indexed using board-square values.</p>
+            <p>The first dimension provides two killer-move slots. This allows ABC to remember two useful cutoff moves for a given search position. The second dimension represents the maximum search ply that ABC supports.</p>
             <p>Killer moves are therefore not chosen because of the material value of a capture. Unlike MVV-LVA, they are based on what actually happened during the search: a move caused a cutoff, so ABC gives it a higher priority when ordering moves later.</p>
             <p>The second table is used for the <strong>history heuristic</strong>:</p>
             <pre><code>int history_moves[15][128];</code></pre>
