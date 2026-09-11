@@ -89,7 +89,7 @@ int mvv_lva[15][15] = {
 };
 
 // Beta cutoff moves
-int killer_moves[2][128];
+int killer_moves[2][64];
 
 // History best moves
 int history_moves[15][128];
