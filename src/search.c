@@ -1,27 +1,107 @@
 #include "abc.h"
 
-// Static evaluation
-/*int evaluate_position() {
+// Position evaluation
+int evaluate_position()
+{   
+    // Init params
+    int game_phase = -1;
+    int piece_scores = 0;
+    int game_phase_score = 0;
     int score = 0;
+    int score_opening = 0;
+    int score_endgame = 0;
+    int knights = 0;
+    int bishops = 0;
+    int rooks = 0;
+    int queens = 0;
+    
+    // Evaluate material & positional scores
     for (int square = 0; square < 128; square++) {
         if (!(square & 0x88)) {
             int piece = board[square];
-            score += material_score[piece];
+            score_opening += material_score[OPENING][piece];
+            score_endgame += material_score[ENDGAME][piece];
 			switch(piece) {
-				case WP: score += pawn_score[square]; break;
-				case WN: score += knight_score[square]; break;
-				case WB: score += bishop_score[square]; break;
-				case WR: score += rook_score[square]; break;
-				case WK: score += king_score[square]; break;
-				case BP: score -= pawn_score[mirror_score[square]]; break;
-				case BN: score -= knight_score[mirror_score[square]]; break;
-				case BB: score -= bishop_score[mirror_score[square]]; break;
-				case BR: score -= rook_score[mirror_score[square]]; break;
-				case BK: score -= king_score[mirror_score[square]]; break;
+				case WK:
+                    score_opening += positional_score[OPENING][KING][square];
+                    score_endgame += positional_score[ENDGAME][KING][square];
+                    break;
+                case WP:
+                    score_opening += positional_score[OPENING][PAWN][square];
+                    score_endgame += positional_score[ENDGAME][PAWN][square];
+                    break;
+				case WN:
+                    score_opening += positional_score[OPENING][KNIGHT][square];
+                    score_endgame += positional_score[ENDGAME][KNIGHT][square];
+                    knights++;
+                    break;
+				case WB:
+                    score_opening += positional_score[OPENING][BISHOP][square];
+                    score_endgame += positional_score[ENDGAME][BISHOP][square];
+                    bishops++;
+                    break;
+				case WR:
+                    score_opening += positional_score[OPENING][ROOK][square];
+                    score_endgame += positional_score[ENDGAME][ROOK][square];
+                    rooks++;
+                    break;
+                case WQ:
+                    score_opening += positional_score[OPENING][QUEEN][square];
+                    score_endgame += positional_score[ENDGAME][QUEEN][square];
+                    queens++;
+                    break;
+                case BK:
+                    score_opening -= positional_score[OPENING][KING][mirror_score[square]];
+                    score_endgame -= positional_score[ENDGAME][KING][mirror_score[square]];
+                    break;
+                case BP:
+                    score_opening -= positional_score[OPENING][PAWN][mirror_score[square]];
+                    score_endgame -= positional_score[ENDGAME][PAWN][mirror_score[square]];
+                    break;
+				case BN:
+                    score_opening -= positional_score[OPENING][KNIGHT][mirror_score[square]];
+                    score_endgame -= positional_score[ENDGAME][KNIGHT][mirror_score[square]];
+                    knights++;
+                    break;
+				case BB:
+                    score_opening -= positional_score[OPENING][BISHOP][mirror_score[square]];
+                    score_endgame -= positional_score[ENDGAME][BISHOP][mirror_score[square]];
+                    bishops++;
+                    break;
+				case BR:
+                    score_opening -= positional_score[OPENING][ROOK][mirror_score[square]];
+                    score_endgame -= positional_score[ENDGAME][ROOK][mirror_score[square]];
+                    rooks++;
+                    
+                    break;
+                case BQ:
+                    score_opening -= positional_score[OPENING][QUEEN][mirror_score[square]];
+                    score_endgame -= positional_score[ENDGAME][QUEEN][mirror_score[square]];
+                    queens++;
+                    break;
 			}
         }
-    } return !side ? score : -score;
-}*/
+    }
+    
+    // Calculate game phase
+    game_phase_score = knights * material_score[OPENING][KNIGHT];
+    game_phase_score += bishops * material_score[OPENING][BISHOP];
+    game_phase_score += rooks * material_score[OPENING][ROOK];
+    game_phase_score += queens * material_score[OPENING][QUEEN];
+    if (game_phase_score > opening_phase_score) game_phase = OPENING;
+    else if (game_phase_score < endgame_phase_score) game_phase = ENDGAME;
+    else game_phase = MIDDLEGAME;
+    
+    // Calculate final score
+    if (game_phase == MIDDLEGAME)
+        score = (
+            score_opening * game_phase_score +
+            score_endgame * (opening_phase_score - game_phase_score)
+        ) / opening_phase_score;
+    else if (game_phase == OPENING) score = score_opening;
+    else if (game_phase == ENDGAME) score = score_endgame;
+    return (side == WHITE) ? score : -score;
+}
 
 // Score urgency for move ordering
 static inline int score_move(int move) {

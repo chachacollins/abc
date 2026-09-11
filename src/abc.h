@@ -51,6 +51,7 @@
     enum pieces { WK = 1, WP, WN, WB, WR, WQ, BK = 9, BP, BN, BB, BR, BQ };
     enum castling { WKC = 1, WQC = 2, BKC = 4, BQC = 8 };
     enum capture_flags {ALL_MOVES, ONLY_CAPTURES};
+    enum game_phase { OPENING, ENDGAME, MIDDLEGAME };
 
     // Definitions in "defs.c"
     extern int board[128];
@@ -86,13 +87,10 @@
     extern int stoptime;
     extern int timeset;
     extern int stopped;
+    extern int opening_phase_score;
+    extern int endgame_phase_score;
     extern int material_score[2][15];
-    extern int pawn_score[128];
-    extern int knight_score[128];
-    extern int bishop_score[128];
-    extern int rook_score[128];
-    //extern int queen_score[128];
-    extern int king_score[128];
+    extern int positional_score[2][7][128];
     extern int mirror_score[128];
 
     // Functions in "io.c"
