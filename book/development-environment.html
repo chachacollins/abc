@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Development Environment — ABC</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+    <main class="book">
+        <article class="chapter">
+            <div class="chapter-label">Chapter 3</div>
+            <h2>Installing GCC</h2>
+            <p class="lead">ABC is written in C, so before we can compile the engine we need a C compiler. GCC is used to turn the ABC source code into an executable program, and the same build process works on both Windows and Linux.</p>
+            <p>GCC, the GNU Compiler Collection, is one of the most widely used C compilers. It takes our C source files and compiles them into machine code that can be executed by the operating system.</p>
+            <h3>Windows</h3>
+            <p>On Windows, one of the simplest ways to install GCC is through <code>MSYS2</code>. After installing MSYS2, open the <code>MSYS2 UCRT64</code> terminal and install GCC with:</p>
+            <pre><code>pacman -S mingw-w64-ucrt-x86_64-gcc</code></pre>
+            <p>After the installation finishes, verify that GCC is available:</p>
+            <pre><code>gcc --version</code></pre>
+            <p>If the command prints the GCC version, the compiler is ready.</p>
+            <h3>Linux</h3>
+            <p>On Linux, GCC can normally be installed through the distribution's package manager. On Ubuntu or another Debian-based distribution:</p>
+            <pre><code>sudo apt update
+sudo apt install gcc</code></pre>
+            <p>On Fedora:</p>
+            <pre><code>sudo dnf install gcc</code></pre>
+            <p>On Arch Linux:</p>
+            <pre><code>sudo pacman -S gcc</code></pre>
+            <p>After installation, verify GCC with:</p>
+            <pre><code>gcc --version</code></pre>
+            <h3>Building ABC</h3>
+            <p>ABC includes a <code>Makefile</code> that contains the complete command used to build the engine. Instead of entering the GCC command manually, we can simply run:</p>
+            <pre><code>make</code></pre>
+            <p>The Makefile tells <code>make</code> exactly how ABC should be compiled. In the current version of ABC, the build command is:</p>
+            <pre><code>gcc -Ofast -flto *.c -o abc.exe</code></pre>
+            <p>The <code>*.c</code> tells GCC to compile all C source files in the current directory. The <code>-o</code> option specifies the name of the resulting executable.</p>
+            <p>The <code>-Ofast</code> option enables aggressive compiler optimizations, while <code>-flto</code> enables link-time optimization. These options are useful when building the engine for performance.</p>
+            <p>On Linux, the Makefile can use the same GCC options while producing an executable without the Windows <code>.exe</code> extension:</p>
+            <pre><code>gcc -Ofast -flto *.c -o abc</code></pre>
+            <p>The important part is that you normally do not need to type either command yourself. Run <code>make</code>, and the Makefile takes care of the build.</p>
+            <p>Once GCC and Make are installed, ABC can be compiled on both Windows and Linux using the same simple build process.</p>
+        </article>
+    </main>
+</body>
+</html>

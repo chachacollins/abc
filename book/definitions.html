@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Definitions — ABC</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+    <main class="book">
+        <article class="chapter">
+            <h3>Chess Board Representation</h3>
+                <p>The first variables in <code>defs.c</code> contain the information that describes the current chess position. Together, they form the basic state of the board that the rest of the engine works with.</p>
+                <pre><code>int board[128];
+int king_square[2] = {E1, E8};
+int side = WHITE;
+int enpassant = NONE;
+int castle = 15;</code></pre>
+            <p>The most important variable is <code>board</code>. ABC uses a 128-element array because the engine represents the chessboard using the <strong>0x88 board representation</strong>. Only 64 of those 128 positions correspond to actual chessboard squares; the remaining positions make it possible to detect off-board moves very efficiently.</p>
+            <p>Each valid entry in <code>board</code> contains a value representing the piece occupying that square. An empty square contains the <code>EMPTY</code> value, while pieces such as <code>WP</code>, <code>WN</code>, <code>BR</code>, or <code>BQ</code> identify the piece and its color.</p>
+            <p>The <code>king_square</code> array stores the current square of each king. Its two elements correspond to <code>WHITE</code> and <code>BLACK</code>, so the initial values <code>E1</code> and <code>E8</code> place the kings on their normal starting squares.</p>
+            <p>Keeping the king locations separately means the engine does not have to search through the entire board every time it needs to know where a king is. This is especially important when checking whether a king is in check or whether a generated move is legal.</p>
+            <p>The <code>side</code> variable stores whose turn it is to move. It starts as <code>WHITE</code>, because White makes the first move in the standard starting position. During play, this value switches between <code>WHITE</code> and <code>BLACK</code> after each move.</p>
+            <p>The <code>enpassant</code> variable stores the square where an en passant capture is currently possible. At the beginning of a game there is no such square, so it is initialized to <code>NONE</code>. When a pawn makes a two-square advance, the engine can update this variable so that the opponent can recognize the special capture on the following move.</p>
+            <h3>Encoding Castling Rights</h3>
+            <p>The <code>castle</code> variable stores all four castling rights inside a single integer using <strong>bit flags</strong>. The four rights are defined by the <code>castling</code> enum:</p>
+            <pre><code>enum castling {
+    WKC = 1,
+    WQC = 2,
+    BKC = 4,
+    BQC = 8
+};</code></pre>
+            <p>Each value represents a different bit of the integer. Written in binary, the four flags are:</p>
+            <pre><code>WKC = 1  = 0001
+WQC = 2  = 0010
+BKC = 4  = 0100
+BQC = 8  = 1000</code></pre>
+            <p>The names describe the four possible rights: White kingside, White queenside, Black kingside, and Black queenside. Because each flag uses a different bit, several rights can be stored in <code>castle</code> at the same time.</p>
+            <p>At the beginning of a normal game, <code>castle</code> is initialized to <code>15</code>:</p>
+            <pre><code>castle = 15;
+            </code></pre>
+            <p>In binary, <code>15</code> is <code>1111</code>, so all four castling rights are enabled:</p>
+            <pre><code>1111
+||||
+|||+-- WKC = 1
+||+--- WQC = 2
+|+---- BKC = 4
++----- BQC = 8</code></pre>
+            <p>This is equivalent to combining the four flags:</p>
+            <pre><code>WKC | WQC | BKC | BQC
+  1 |   2 |   4 |   8 = 15</code></pre>
+            <p>The important idea is that each bit can be examined independently. If the <code>WKC</code> bit is set, White still has the right to castle kingside. If it is not set, that right has been lost. The same applies to the other three flags.</p>
+            <p>ABC also defines a convenient mapping between a side and its two castling flags:</p>
+            <pre><code>int castling_side[2][2] = {{1, 2}, {4, 8}};</code></pre>
+            <p>The first dimension represents the side, while the second represents the castling direction. For White, the two values are <code>1</code> and <code>2</code>, corresponding to <code>WKC</code> and <code>WQC</code>. For Black, they are <code>4</code> and <code>8</code>, corresponding to <code>BKC</code> and <code>BQC</code>.</p>
+            <pre><code>castling_side[WHITE][0] = WKC = 1
+castling_side[WHITE][1] = WQC = 2
+
+castling_side[BLACK][0] = BKC = 4
+castling_side[BLACK][1] = BQC = 8</code></pre>
+            <p>This allows the engine to refer to the appropriate castling rights through the side and direction instead of having to handle all four possibilities separately.</p>
+            <p>The second important piece of castling data is the <code>castling_rights</code> array:</p>
+            <pre><code>int castling_rights[128] = {
+     7, 15, 15, 15,  3, 15, 15, 11,  NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    15, 15, 15, 15, 15, 15, 15, 15,  NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    15, 15, 15, 15, 15, 15, 15, 15,  NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    15, 15, 15, 15, 15, 15, 15, 15,  NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    15, 15, 15, 15, 15, 15, 15, 15,  NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    15, 15, 15, 15, 15, 15, 15, 15,  NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    15, 15, 15, 15, 15, 15, 15, 15,  NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE,
+    13, 15, 15, 15, 12, 15, 15, 14,  NONE, NONE, NONE, NONE, NONE, NONE, NONE, NONE
+};</code></pre>
+            <p>This table associates each square of the 0x88 board with a castling-rights mask. Most squares have the value <code>15</code>, meaning that moving a piece from that square does not remove any castling right. The special values occur on the king and rook starting squares, because moving one of those pieces can permanently remove a castling right.</p>
+            <p>For example, the starting squares on the first rank have the important values:</p>
+            <pre><code>A1 = 13
+E1 = 3
+H1 = 14
+
+A8 = 7
+E8 = 12
+H8 = 11</code></pre>
+            <p>These numbers are themselves combinations of the same four castling bits. For example, <code>E1 = 3</code> is binary <code>0011</code>, which contains both White castling flags. This makes sense because moving the White king from <code>E1</code> removes both kingside and queenside castling rights.</p>
+            <p>Likewise, <code>H1 = 14</code> is <code>1110</code>. The <code>WKC</code> bit is cleared, while the other three rights remain available. Moving the rook from <code>H1</code> therefore removes only White's kingside castling right.</p>
+            <p>The same principle applies to <code>A1</code>, <code>E8</code>, <code>A8</code>, and <code>H8</code>. Each of these squares has a mask designed to remove exactly the castling rights affected by moving a king or rook from that starting square.</p>
+            <p>The table therefore gives ABC a compact way to update castling rights whenever a move involves a particular square. Instead of writing separate rules for every king and rook starting square, the engine can use the mask associated with the square and combine it with the current <code>castle</code> value.</p>
+            <p>The complete use of these masks, including how castling moves are generated and how the rights are updated when moves are made, will appear later when we examine move generation and move making.</p>
+            <h3>Algebraic Square Names</h3>
+            <p>The <code>square_to_coords</code> array associates every index of the 128-element 0x88 board with a coordinate string:</p>
+            <pre><code>char *square_to_coords[] = {
+    "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8", "i8", ...
+};</code></pre>
+            <p>The first eight entries correspond to the first rank of the 0x88 representation, the next eight to the next rank, and so on. The extra entries such as <code>i8</code>, <code>j8</code>, and beyond are not real chessboard squares. They exist because the 0x88 representation uses sixteen positions per row, even though only the first eight are valid chess squares.</p>
+            <p>This means the array index can be used directly to obtain a printable coordinate. For example, the internal square value for <code>E1</code> can be used as an index into <code>square_to_coords</code> to obtain the string <code>"e1"</code>.</p>
+            <p>This is particularly useful when ABC needs to convert its internal representation into text, such as when printing a move or communicating a move through the UCI protocol.</p>
+            <h3>Converting FEN Characters to Pieces</h3>
+            <p>The <code>char_pieces</code> array performs the opposite kind of translation. FEN represents pieces using characters such as <code>P</code> for a white pawn and <code>q</code> for a black queen. ABC represents those pieces internally using the piece constants defined in <code>abc.h</code>.</p>
+            <pre><code>int char_pieces[] = {
+    ['P'] = WP, ['N'] = WN, ['B'] = WB, ['R'] = WR, ['Q'] = WQ, ['K'] = WK,
+    ['p'] = BP, ['n'] = BN, ['b'] = BB, ['r'] = BR, ['q'] = BQ, ['k'] = BK
+};</code></pre>
+            <p>This is a designated-initializer array. Instead of assigning values sequentially, each entry is associated directly with the character that indexes it. Therefore, <code>char_pieces['P']</code> gives <code>WP</code>, while <code>char_pieces['q']</code> gives <code>BQ</code>.</p>
+            <p>This makes FEN parsing simple. When the engine encounters a piece character in a FEN string, it can use that character directly as an index and obtain the corresponding internal piece value.</p>
+            <h3>Promoted Pieces</h3>
+            <p>The <code>promoted_pieces</code> array provides another lookup table, this time for converting a promoted piece value into its corresponding piece character:</p>
+            <pre><code>int promoted_pieces[] = {
+    [WQ] = 'q', [WR] = 'r', [WB] = 'b', [WN] = 'n',
+    [BQ] = 'q', [BR] = 'r', [BB] = 'b', [BN] = 'n'
+};</code></pre>
+            <p>The array is used specifically for promotion information. When a pawn promotes, the engine needs to know whether the resulting piece is a queen, rook, bishop, or knight so that the move can be represented correctly.</p>
+            <p>Notice that both white and black promoted pieces map to the same lowercase character. The color is already known from the piece value itself, while this table only needs to identify the type of promoted piece.</p>
+            <p>The values therefore provide a compact conversion from the engine's internal piece representation to the character used when describing a promotion.</p>
+            <h3>ASCII Piece Representation</h3>
+            <p>Finally, <code>ascii_pieces</code> provides characters for displaying pieces on the console:</p>
+            <pre><code>char ascii_pieces[] = ".KPNBRQ--kpnbrq";</code></pre>
+            <p>The index into this string corresponds to the piece value used internally by ABC. The first character, <code>.</code>, represents an empty square. The uppercase characters represent the white pieces, while the lowercase characters represent the black pieces.</p>
+            <pre><code>. K P N B R Q - - k p n b r q
+0 1 2 3 4 5 6 7 8 9 A B C D E</code></pre>
+            <p>The two hyphens occupy the unused piece values between the white and black piece ranges. This keeps the character at each position aligned with the numerical piece constant.</p>
+            <p>These lookup tables illustrate an important pattern used throughout ABC: the engine can keep its internal representation compact and efficient while using small tables whenever it needs to translate those values into a human-readable form. The board uses integer indices and piece codes internally, while functions that communicate with the outside world can quickly convert those values into coordinates, FEN characters, promotion characters, or ASCII board pieces.</p>
+            <h3>Piece Movement Offsets</h3>
+            <p>With the board representation and piece values defined, ABC also needs to know how each type of piece can move. Instead of writing the movement directions separately inside the move-generation code, the engine stores them in a lookup table called <code>move_offsets</code>.</p>
+            <pre><code>int move_offsets[7][8] = {
+    { 0 }, { -16, -1, 16, 1, -17, -15, 17, 15 },
+    { 0 }, { -33, -31, 33, 31, -18, -14, 18, 14 },
+    { -17, -15, 17, 15}, {-16, -1, 16, 1 },
+    { -16, -1, 16, 1, -17, -15, 17, 15 }
+};</code></pre>
+            <p>These numbers are offsets in the <strong>0x88 board representation</strong>. Moving from one square to another does not require calculating a new coordinate; the engine can simply add an offset to the current square index.</p>
+            <p>For example, on a 0x88 board, moving one square vertically changes the index by <code>16</code>, while moving one square horizontally changes it by <code>1</code>. Diagonal movement uses combinations such as <code>17</code> and <code>15</code>.</p>
+            <pre><code>-16   up
+ 16   down
+ -1   left
+  1   right
+-17   up-left
+-15   up-right
+ 17   down-right
+ 15   down-left</code></pre>
+            <p>The table contains one row for each internal piece type used by ABC. Pawns are skipped, while sliding and leaping pieces receive the offsets appropriate for their movement patterns.</p>
+            <p>The knight, for example, uses offsets such as <code>-33</code>, <code>-31</code>, <code>33</code>, <code>31</code>, <code>-18</code>, <code>-14</code>, <code>18</code>, and <code>14</code>. These represent the eight possible destinations of a knight from a given square.</p>
+            <p>Bishops use the four diagonal offsets, while rooks use the four horizontal and vertical offsets. Queens combine both sets, giving them all eight directions. The exact way these offsets are used to walk through the board will appear later when we examine move generation.</p>
+            <h4>Number of Movement Directions</h4>
+            <p>The companion <code>offset_length</code> array tells the engine how many offsets are valid for each piece:</p>
+            <pre><code>int offset_length[7] = { 0, 8, 0, 8, 4, 4, 8 };</code></pre>
+            <p>This is important because the rows of <code>move_offsets</code> all have room for eight values, but not every piece uses all eight. A bishop needs only four directions, a rook needs four, while a knight and queen use eight.</p>
+            <p>The two arrays therefore work together. <code>move_offsets</code> provides the possible movement directions, while <code>offset_length</code> tells the engine how many of those entries it should examine for the current piece.</p>
+            <p>This is another example of ABC keeping its rules in compact data tables. The move-generation code does not need a separate hard-coded list of directions for every piece. It can look up the appropriate offsets and the number of valid offsets, then apply the same general mechanism to different piece types.</p>
+            <h3>Pawn Ranks</h3>
+            <p>Pawns are different from the other pieces because their movement depends on their position on the board. In particular, a pawn has a starting rank where it can make its initial two-square advance, and a promoting rank where it can be transformed into another piece.</p>
+            <pre><code>int pawn_starting_rank[] = {0x60, 0x10};
+int pawn_promoting_rank[] = {0x00, 0x70};</code></pre>
+            <p>These arrays store the relevant 0x88 board boundaries for each side. The first element corresponds to <code>WHITE</code>, while the second corresponds to <code>BLACK</code>.</p>
+            <p>For the starting ranks, White's value is <code>0x60</code> and Black's is <code>0x10</code>. In the 0x88 representation, these values identify the ranks from which each side's pawns begin. This allows the move-generation code to determine whether a pawn is still on its starting rank and can therefore consider its initial two-square move.</p>
+            <p>The promoting ranks work in the opposite direction:</p>
+            <pre><code>WHITE = 0x00
+BLACK = 0x70</code></pre>
+            <p>White pawns promote when they reach the eighth rank, which begins at <code>0x00</code> in the 0x88 representation. Black pawns promote when they reach the first rank, which begins at <code>0x70</code>.</p>
+            <p>Keeping these values in arrays indexed by side lets the engine use the same general logic for both colors. Instead of hard-coding separate rank checks for White and Black, the appropriate boundary can be selected using the current side.</p>
+            <p>These two small tables provide the move generator with the positional information it needs for the two special stages of a pawn's journey: its initial move and its promotion. The actual use of these values will appear later when we examine pawn move generation and promotion handling.</p>
+        </article>
+    </main>
+</body>
+</html>

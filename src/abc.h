@@ -55,10 +55,10 @@
 
     // Definitions in "defs.c"
     extern int board[128];
+    extern int king_square[2];
     extern int side;
     extern int enpassant;
     extern int castle;
-    extern int king_square[2];
     extern char *square_to_coords[];
     extern int char_pieces[];
     extern int promoted_pieces[];

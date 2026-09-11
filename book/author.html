@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>From Author — ABC</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+    <main class="book">
+        <article class="chapter">
+            <div class="chapter-label">Chapter 1</div>
+            <h2>Small Talk from the Author</h2>
+            <p class="lead">When writing a chess engine, one of the most complicated things to figure out is not how to write the code or even which data structures to use. The difficult question comes earlier: <strong>what exactly are we trying to optimize for?</strong></p>
+            <p>There are many possible answers. We might want to build the strongest engine possible. We might want the cleanest and most maintainable code. We might want the smallest executable we can produce. Or perhaps we want to experiment with unusual algorithms and data structures simply because they are interesting.</p>
+            <p>These goals do not always agree with each other.</p>
+            <p>Code that is extremely fast is not necessarily the code that is easiest to understand. A highly optimized implementation may contain clever tricks, unusual data structures, duplicated logic, or carefully tuned special cases that make perfect sense to a strong engine developer but obscure the underlying idea from somebody learning how chess engines work.</p>
+            <p>The opposite is also true. Code written primarily for clarity and learning is not necessarily the fastest way to solve the problem. Sometimes an implementation that is beautifully straightforward will leave performance on the table.</p>
+            <div class="note">
+                <div class="note-title">The goal of ABC</div>
+                <p>ABC is primarily a <strong>didactic chess engine</strong>. Its purpose is to make the ideas behind a chess engine understandable by implementing them in relatively simple, explicit code.</p>
+            </div>
+            <p>This distinction is important because throughout this book you will occasionally encounter code that could undoubtedly be made faster, shorter, or more sophisticated.</p>
+            <p>That is intentional.</p>
+            <p>A production chess engine has very different priorities. It may use highly optimized board representations, extensive caching, specialized move generation, aggressive search heuristics, platform-specific optimizations, and many other techniques whose primary purpose is to squeeze as much performance as possible from the hardware.</p>
+            <p>ABC takes a more modest approach. We want to be able to look at a function and understand what it is doing. We want the relationship between the chess concept and the C code to be visible.</p>
+            <p>Performance still matters. After all, a chess engine that cannot search deeply enough is not particularly interesting. But performance is not the only metric, and it is not always the most important one.</p>
+            <p>The central idea of this book is therefore simple: <strong>we are optimizing for understanding.</strong></p>
+            <p>If you are looking for a guide to building the strongest possible chess engine, this book is probably not the right place to start. If, however, you want to understand what happens inside a chess engine — how a position is represented, how moves are generated, how a position is evaluated, and how a search algorithm decides which move to play — then this is exactly what ABC is designed for.</p>
+        </article>
+    </main>
+</body>
+</html>

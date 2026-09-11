@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Header File — ABC</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+    <main class="book">
+        <article class="chapter">
+            <div class="chapter-label">Chapter 4</div>
+            <h2>The Common Header</h2>
+            <p class="lead">The <code>abc.h</code> file is the common language of ABC. It contains the definitions, constants, data structures, global variables, and function declarations that are shared by the different parts of the engine.</p>
+            <p>Almost every source file in ABC includes this header. Instead of defining the same information separately in every file, we define it once in <code>abc.h</code> and make it available wherever it is needed.</p>
+            <h3>Protecting the Header</h3>
+            <p>The first thing in the file is an include guard:</p>
+            <pre><code>#ifndef ARRAY_BASED_CHESS
+#define ARRAY_BASED_CHESS
+...
+#endif</code></pre>
+            <p>An include guard prevents the contents of the header from being processed more than once during compilation. Since different source files can include other headers as well, the same header could otherwise be included multiple times and cause duplicate definitions.</p>
+            <p>The first line checks whether <code>ARRAY_BASED_CHESS</code> has already been defined. If it has not, the macro is defined and the contents of the header are processed. A later inclusion sees that the macro already exists and skips the entire header.</p>
+            <h3>Library Includes</h3>
+            <p>ABC uses several standard C and operating-system libraries. The first group contains commonly used headers such as <code>stdio.h</code>, <code>unistd.h</code>, and <code>string.h</code>.</p>
+            <p>The operating-system-specific section is controlled by the <code>WIN64</code> macro:</p>
+            <pre><code>#ifdef WIN64
+    #include "windows.h"
+#else
+    #include "sys/time.h"
+    #include "sys/select.h"
+    #include "string.h"
+#endif</code></pre>
+            <p>This allows the same source code to handle differences between Windows and Unix-like systems. When <code>WIN64</code> is defined, the Windows-specific header is included. Otherwise, the Unix-like system headers are used.</p>
+            <h3>The Starting Position</h3>
+            <p>The standard chess starting position is stored as a FEN string:</p>
+            <pre><code>#define START_POSITION "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 "</code></pre>
+            <p>Using a constant for this position means that the initial board can be referred to consistently throughout the engine without repeating the entire FEN string.</p>
+            <h3>Position and Move Lists</h3>
+            <p>Two important structures are defined in the header. The first is <code>Position</code>, which stores a snapshot of the current board state.</p>
+            <pre><code>typedef struct {
+    int board[128];
+    int king_square[2];
+    int side;
+    int enpassant;
+    int castle;
+} Position;</code></pre>
+            <p>The board itself uses 128 elements because ABC uses the 0x88 board representation. The structure also stores the locations of both kings, the side to move, the en passant square, and the current castling rights.</p>
+            <p>This structure is particularly useful when making a move. A position can be saved before a move and restored afterwards, allowing the search to explore one variation and then return to the previous position.</p>
+            <p>The second structure represents a list of generated moves:</p>
+            <pre><code>typedef struct {
+    int moves[256];
+    int count;
+} Movelist;</code></pre>
+            <p>The array stores the encoded moves, while <code>count</code> tells us how many moves are currently in the list. A single <code>Movelist</code> can therefore be passed between move generation, move ordering, and search functions.</p>
+            <h3>Squares, Sides, and Pieces</h3>
+            <p>ABC uses enums to give meaningful names to values that would otherwise be simple integers. The square enum maps chessboard coordinates onto the 0x88 board:</p>
+            <pre><code>enum squares {
+    A8 = 0,   B8, C8, D8, E8, F8, G8, H8,
+    A7 = 16,  B7, C7, D7, E7, F7, G7, H7,
+    A6 = 32,  B6, C6, D6, E6, F6, G6, H6,
+    ...
+    A1 = 112, B1, C1, D1, E1, F1, G1, H1
+};</code></pre>
+            <p>Instead of writing numbers such as <code>112</code> when referring to the white king's starting square, the engine can simply use <code>E1</code>. This makes the code much easier to read.</p>
+            <p>Other enums define the sides, piece types, actual pieces, castling rights, move-generation modes, and game phases:</p>
+            <pre><code>enum sides { WHITE, BLACK };
+enum types { NONE = -1, EMPTY, KING, PAWN, KNIGHT, BISHOP, ROOK, QUEEN };
+enum pieces { WK = 1, WP, WN, WB, WR, WQ, BK = 9, BP, BN, BB, BR, BQ };
+enum castling { WKC = 1, WQC = 2, BKC = 4, BQC = 8 };
+enum capture_flags { ALL_MOVES, ONLY_CAPTURES };
+enum game_phase { OPENING, ENDGAME, MIDDLEGAME };</code></pre>
+            <p>These values become the vocabulary used throughout the engine. A function can work with <code>WHITE</code>, <code>BLACK</code>, <code>KNIGHT</code>, or <code>WKC</code> instead of unexplained numeric constants.</p>
+            <h3>Global Variables</h3>
+            <p>The next section contains a long list of <code>extern</code> declarations. These are the global variables defined in <code>defs.c</code>.</p>
+            <pre><code>extern int board[128];
+extern int king_square[2];
+extern int side;
+extern int enpassant;
+extern int castle;</code></pre>
+            <p>The keyword <code>extern</code> tells the compiler that these variables exist somewhere else. The header does not create another copy of them. Their actual definitions and storage are provided by <code>defs.c</code>.</p>
+            <p>This gives every source file access to the same engine state. Move generation can access the board, search can access the current side, the UCI code can access the time-control variables, and evaluation can access the scoring tables.</p>
+            <p>Some of these globals describe the chess position, while others belong to the search itself. There are arrays for move ordering, killer moves, history heuristics, the principal variation, repetition detection, piece-square tables, and many other parts of the engine.</p>
+            <p>There are also variables used by the UCI interface and time management, such as <code>movetime</code>, <code>starttime</code>, <code>stoptime</code>, <code>timeset</code>, and <code>stopped</code>.</p>
+            <h3>Function Declarations</h3>
+            <p>The final sections of <code>abc.h</code> declare the functions implemented by the different source files. The declarations are grouped according to where their implementations live.</p>
+            <p>For example, <code>io.c</code> provides functions for loading and displaying positions:</p>
+            <pre><code>extern void set_board(char *fen);
+extern void print_board();
+extern void print_move(int source, int target, int promoted);</code></pre>
+            <p><code>movegen.c</code> contains the functions responsible for encoding moves, generating legal moves, detecting attacks, making moves, and saving or restoring positions.</p>
+            <p><code>perft.c</code> contains the perft functions used to test move generation. <code>hash.c</code> contains the random-number and position-hashing functions. <code>search.c</code> contains evaluation, move ordering, quiescence search, negamax, and the main search function.</p>
+            <p>The UCI interface lives in <code>uci.c</code>, while <code>misc.c</code> contains utility functions such as time measurement, input handling, and communication with the GUI.</p>
+            <h3>The Header as the Engine's Interface</h3>
+            <p>With all of these declarations in one place, <code>abc.h</code> acts as the interface between the different components of ABC. A source file does not need to know how another component is implemented. It only needs to know which functions and data structures are available.</p>
+            <p>This is one of the main reasons the engine can be divided into separate source files without becoming difficult to connect together. The implementation stays in the <code>.c</code> files, while the shared definitions and declarations stay in <code>abc.h</code>.</p>
+            <p>As the engine becomes more complicated, this separation becomes increasingly valuable. The search code can call <code>generate_moves()</code> without knowing how move generation works internally. The UCI code can call <code>search_position()</code> without knowing how the search algorithm is implemented.</p>
+            <p>The header therefore provides a simple contract between the different parts of ABC: these are the types, constants, variables, and functions that make up the engine's shared interface.</p>
+            <p>It is not the most sophisticated architecture possible, and that is intentional. ABC is designed to keep the connection between the concepts of a chess engine and their implementation in C as visible as possible.</p>
+        </article>
+    </main>
+</body>
+</html>
+
+
+
+
+
+
+
+
+

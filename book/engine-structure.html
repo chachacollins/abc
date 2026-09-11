@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Engine Structure — ABC</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+    <main class="book">
+        <article class="chapter">
+            <div class="chapter-label">Chapter 2</div>
+            <h2>Engine Structure</h2>
+            <p class="lead">Before looking at how ABC plays chess, it is useful to understand how the code itself is organized. The engine is intentionally split into a small number of simple files, with each file responsible for a particular part of the program.</p>
+            <p>At the center of the project is a single header file called <code>abc.h</code>. This file contains the definitions that are shared across the entire engine: enums, constants, structures, external variables, and function declarations.</p>
+            <p>The purpose of keeping these definitions in one place is simple. Every source file in the engine can include <code>abc.h</code> and immediately have access to the common language of the program. A piece type, a move structure, a board representation, or a function declared in the header can be used wherever it is needed without having to duplicate its definition.</p>
+            <h3>The Common Header</h3>
+            <p>The <code>abc.h</code> file can be thought of as the interface between the different parts of the engine. It tells each source file what types, variables, and functions exist, without containing the implementation of those functions.</p>
+            <p>This keeps the individual source files relatively independent. Move generation does not need to contain the definitions of the search structures, and the evaluation code does not need to redefine the board representation. They simply include the common header and use the definitions provided by it.</p>
+            <h3>Shared Variables</h3>
+            <p>ABC also has a file called <code>defs.c</code>. Its purpose is to contain the actual initialization of the variables that are shared throughout the engine.</p>
+            <p>This is closely related to the <code>extern</code> declarations in <code>abc.h</code>. The header tells the compiler that a variable exists somewhere, while <code>defs.c</code> provides the actual storage for that variable.</p>
+            <p>For example, a variable can be declared in the header with <code>extern</code> and then defined once in <code>defs.c</code>. Every other source file can include <code>abc.h</code> and access the same variable.</p>
+            <p>This gives ABC a single shared state while keeping the declarations and definitions separate. It also prevents every source file from creating its own separate copy of the same global variable.</p>
+            <h3>One File, One Responsibility</h3>
+            <p>After the common definitions and shared variables are taken care of, the rest of the engine is divided by functionality. Each source file contains the functions responsible for a particular part of the chess engine.</p>
+            <p>For example, one file can contain board-related functions, another can handle move generation, another can contain the evaluation code, and another can implement the search algorithm.</p>
+            <p>The exact division is not intended to introduce a complicated software architecture. Quite the opposite. The goal is to make it easy to find the code responsible for a particular task.</p>
+            <h3>Keeping the Structure Simple</h3>
+            <p>There are many ways to organize a larger C project, and a production engine might use a much more elaborate structure. ABC deliberately avoids unnecessary complexity.</p>
+            <p>The basic organization is therefore straightforward: <code>abc.h</code> contains the shared definitions and declarations, <code>defs.c</code> contains the shared variable definitions and initialization, and the remaining source files contain the actual implementations of the different engine components.</p>
+            <p>This structure also fits the educational purpose of ABC. There is little abstraction between the source code and the concepts being implemented. When we introduce a new part of the engine, there should be a clear place where its implementation lives.</p>
+            <p>As the engine grows, this separation will become increasingly useful. Chess engines contain many different systems that have to work together, but understanding them one at a time is much easier than trying to understand the entire program as a single piece of code.</p>
+            <p>ABC therefore starts with a simple principle: <strong>shared definitions belong together, shared state is defined in one place, and each engine component gets its own implementation.</strong></p>
+        </article>
+    </main>
+</body>
+</html>
