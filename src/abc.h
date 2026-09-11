@@ -86,7 +86,7 @@
     extern int stoptime;
     extern int timeset;
     extern int stopped;
-    extern int material_score[15];
+    extern int material_score[2][15];
     extern int pawn_score[128];
     extern int knight_score[128];
     extern int bishop_score[128];

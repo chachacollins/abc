@@ -1,7 +1,7 @@
 #include "abc.h"
 
 // Static evaluation
-int evaluate_position() {
+/*int evaluate_position() {
     int score = 0;
     for (int square = 0; square < 128; square++) {
         if (!(square & 0x88)) {
@@ -21,7 +21,7 @@ int evaluate_position() {
 			}
         }
     } return !side ? score : -score;
-}
+}*/
 
 // Score urgency for move ordering
 static inline int score_move(int move) {

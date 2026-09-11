@@ -128,10 +128,10 @@ int timeset = 0;
 int stopped = 0;
 
 // Piece weights
-int material_score[15] = {
+/*int material_score[15] = {
     0, 10000, 100, 300, 350, 500, 1000, 0, 0,
     -10000, -100, -300, -350, -500, -1000
-};
+};*/
 
 // Positional scores
 int pawn_score[128] =  {

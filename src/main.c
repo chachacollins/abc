@@ -11,16 +11,21 @@ int main() {
     uci();
     //2r3k1/R7/8/1R6/8/8/P4KPP/8 w - - 0 40 
     
-    /*init_random_keys();
-    set_board(START_POSITION); printf("hash %d\n", generate_hash_key()); getchar();
+    //init_random_keys();
+    /*set_board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 "); printf("hash %d\n", generate_hash_key()); getchar();
     Movelist moves[1];
     generate_moves(moves);
     for (int i = 0; i < moves->count; i++) {
         int move = moves->moves[i];
         Position position;
         save_position(&position);
-        make_move(move, ALL_MOVES); print_board(); printf("hash %d\n", generate_hash_key()); getchar();
-        restore_position(&position); print_board(); printf("hash %d\n", generate_hash_key()); getchar();
+        make_move(move, ALL_MOVES);
+        print_board();
+        printf("hash %d\n", generate_hash_key()); evaluate_position(); getchar();
+        
+        restore_position(&position);
+        print_board();
+        printf("hash %d\n", generate_hash_key()); evaluate_position(); getchar();
     }*/
     return 0;
 }
