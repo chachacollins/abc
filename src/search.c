@@ -144,7 +144,7 @@ int is_repetition() {
 // Quiescence search
 int quiescence_search(int alpha, int beta) {
     // Listen to UCI "stop" command
-    if((nodes & 2047 ) == 0) communicate();
+    if ((nodes & 2047 ) == 0) communicate();
     
     // Count nodes
     nodes++;
@@ -187,10 +187,10 @@ int negamax_search(int alpha, int beta, int depth) {
     if (ply && is_repetition()) return 0;
     
     // Listen to UCI "stop" command
-    if((nodes & 2047 ) == 0) communicate();
+    if ((nodes & 2047 ) == 0) communicate();
     
     // Search until no captures left
-    if  (!depth) return quiescence_search(alpha, beta);
+    if (!depth) return quiescence_search(alpha, beta);
     
     // Count nodes
     nodes++;
@@ -205,7 +205,6 @@ int negamax_search(int alpha, int beta, int depth) {
     
     // Move ordering
     sort_moves(moves);
-    int moves_searched = 0;
     
     // Search best move
     for (int count = 0; count < moves->count; count++) {
@@ -219,7 +218,6 @@ int negamax_search(int alpha, int beta, int depth) {
         score = -negamax_search(-beta, -alpha, depth - 1);
         restore_position(&position); ply--; repetition_index--;
         if (stopped == 1) break;
-        moves_searched++;
         if (score > alpha) {
             history_moves[board[get_move_source(move)]][get_move_target(move)] += depth;
             alpha = score;

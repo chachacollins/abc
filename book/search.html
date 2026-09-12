@@ -3,30 +3,477 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Preface — ABC</title>
+    <title>Search — ABC</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <main class="book">
         <article class="chapter">
-            <div class="chapter-label">Chapter 1</div>
-            <h2>Preface</h2>
-            <p class="lead">When writing a chess engine, one of the most complicated things to figure out is not how to write the code or even which data structures to use. The difficult question comes earlier: <strong>what exactly are we trying to optimize for?</strong></p>
-            <p>There are many possible answers. We might want to build the strongest engine possible. We might want the cleanest and most maintainable code. We might want the smallest executable we can produce. Or perhaps we want to experiment with unusual algorithms and data structures simply because they are interesting.</p>
-            <p>These goals do not always agree with each other.</p>
-            <p>Code that is extremely fast is not necessarily the code that is easiest to understand. A highly optimized implementation may contain clever tricks, unusual data structures, duplicated logic, or carefully tuned special cases that make perfect sense to a strong engine developer but obscure the underlying idea from somebody learning how chess engines work.</p>
-            <p>The opposite is also true. Code written primarily for clarity and learning is not necessarily the fastest way to solve the problem. Sometimes an implementation that is beautifully straightforward will leave performance on the table.</p>
+            <div class="chapter-label">Chapter 10</div>
+            <h2>Search</h2>
+            <p class="lead">Search is the heart of a chess engine. Evaluation tells ABC how good a position is, but search is what allows the engine to look ahead, compare possible moves, and eventually decide what it should play.</p>
+            <p>ABC begins its search with a deliberately simple evaluation function based on the <strong>PeSTO evaluation method</strong>. The evaluation uses material values and piece-square tables, with separate values for the opening and endgame. There are no advanced positional terms here. The purpose is to give the search a numerical description of the position that is simple enough to understand while still providing useful chess knowledge.</p>
+            <h4>The Evaluation Function</h4>
+            <pre><code>// Position evaluation
+int evaluate_position()
+{   
+    // Init params
+    int game_phase = -1;
+    int piece_scores = 0;
+    int game_phase_score = 0;
+    int score = 0;
+    int score_opening = 0;
+    int score_endgame = 0;
+    int knights = 0;
+    int bishops = 0;
+    int rooks = 0;
+    int queens = 0;
+    
+    // Evaluate material &amp; positional scores
+    for (int square = 0; square &lt; 128; square++) {
+        if (!(square &amp; 0x88)) {
+            int piece = board[square];
+            score_opening += material_score[OPENING][piece];
+            score_endgame += material_score[ENDGAME][piece];
+			switch(piece) {
+				case WK:
+                    score_opening += positional_score[OPENING][KING][square];
+                    score_endgame += positional_score[ENDGAME][KING][square];
+                    break;
+                case WP:
+                    score_opening += positional_score[OPENING][PAWN][square];
+                    score_endgame += positional_score[ENDGAME][PAWN][square];
+                    break;
+				case WN:
+                    score_opening += positional_score[OPENING][KNIGHT][square];
+                    score_endgame += positional_score[ENDGAME][KNIGHT][square];
+                    knights++;
+                    break;
+				case WB:
+                    score_opening += positional_score[OPENING][BISHOP][square];
+                    score_endgame += positional_score[ENDGAME][BISHOP][square];
+                    bishops++;
+                    break;
+				case WR:
+                    score_opening += positional_score[OPENING][ROOK][square];
+                    score_endgame += positional_score[ENDGAME][ROOK][square];
+                    rooks++;
+                    break;
+                case WQ:
+                    score_opening += positional_score[OPENING][QUEEN][square];
+                    score_endgame += positional_score[ENDGAME][QUEEN][square];
+                    queens++;
+                    break;
+                case BK:
+                    score_opening -= positional_score[OPENING][KING][mirror_score[square]];
+                    score_endgame -= positional_score[ENDGAME][KING][mirror_score[square]];
+                    break;
+                case BP:
+                    score_opening -= positional_score[OPENING][PAWN][mirror_score[square]];
+                    score_endgame -= positional_score[ENDGAME][PAWN][mirror_score[square]];
+                    break;
+				case BN:
+                    score_opening -= positional_score[OPENING][KNIGHT][mirror_score[square]];
+                    score_endgame -= positional_score[ENDGAME][KNIGHT][mirror_score[square]];
+                    knights++;
+                    break;
+				case BB:
+                    score_opening -= positional_score[OPENING][BISHOP][mirror_score[square]];
+                    score_endgame -= positional_score[ENDGAME][BISHOP][mirror_score[square]];
+                    bishops++;
+                    break;
+				case BR:
+                    score_opening -= positional_score[OPENING][ROOK][mirror_score[square]];
+                    score_endgame -= positional_score[ENDGAME][ROOK][mirror_score[square]];
+                    rooks++;
+                    
+                    break;
+                case BQ:
+                    score_opening -= positional_score[OPENING][QUEEN][mirror_score[square]];
+                    score_endgame -= positional_score[ENDGAME][QUEEN][mirror_score[square]];
+                    queens++;
+                    break;
+			}
+        }
+    }
+    
+    // Calculate game phase
+    game_phase_score = knights * material_score[OPENING][KNIGHT];
+    game_phase_score += bishops * material_score[OPENING][BISHOP];
+    game_phase_score += rooks * material_score[OPENING][ROOK];
+    game_phase_score += queens * material_score[OPENING][QUEEN];
+    if (game_phase_score &gt; opening_phase_score) game_phase = OPENING;
+    else if (game_phase_score &lt; endgame_phase_score) game_phase = ENDGAME;
+    else game_phase = MIDDLEGAME;
+    
+    // Calculate final score
+    if (game_phase == MIDDLEGAME)
+        score = (
+            score_opening * game_phase_score +
+            score_endgame * (opening_phase_score - game_phase_score)
+        ) / opening_phase_score;
+    else if (game_phase == OPENING) score = score_opening;
+    else if (game_phase == ENDGAME) score = score_endgame;
+    return (side == WHITE) ? score : -score;
+}</code></pre>
+            <h4>Starting the Evaluation</h4>
+            <p>The function begins by preparing several variables. The two most important scores are <code>score_opening</code> and <code>score_endgame</code>. ABC evaluates the same position twice: once using opening values and once using endgame values.</p>
+            <pre><code>int score_opening = 0;
+int score_endgame = 0;</code></pre>
+            <p>This is the foundation of the PeSTO approach used here. A chess position should not necessarily be evaluated in exactly the same way throughout the entire game. For example, king safety is much more important in the opening, while king activity becomes increasingly valuable as pieces disappear.</p>
+            <p>Instead of trying to write a completely different evaluation function for each stage of the game, ABC calculates both scores and later blends them according to the current material on the board.</p>
+            <h4>Scanning the Board</h4>
+            <p>The board is traversed using the same 0x88 representation used everywhere else in ABC.</p>
+            <pre><code>for (int square = 0; square &lt; 128; square++) {
+    if (!(square &amp; 0x88)) {
+        int piece = board[square];
+        ...
+    }
+}</code></pre>
+            <p>Every valid chessboard square is inspected. The first thing ABC adds is the material value of the piece on that square:</p>
+            <pre><code>score_opening += material_score[OPENING][piece];
+score_endgame += material_score[ENDGAME][piece];</code></pre>
+            <p>The material tables already contain positive values for White pieces and negative values for Black pieces. Therefore, simply adding the value automatically produces a score from White's perspective.</p>
+            <p>The evaluation then adds a second component: the <strong>piece-square table</strong>.</p>
+            <h4>Piece-Square Tables</h4>
+            <p>A piece-square table assigns a positional bonus or penalty to a piece depending on where it stands. A knight in the center, for example, can be worth more than a knight trapped on the edge. The same idea can be applied differently to pawns, bishops, rooks, queens, and kings.</p>
+            <p>For White pieces, the appropriate table is indexed directly by the square:</p>
+            <pre><code>case WN:
+    score_opening += positional_score[OPENING][KNIGHT][square];
+    score_endgame += positional_score[ENDGAME][KNIGHT][square];
+    knights++;
+    break;</code></pre>
+            <p>ABC does the same for every White piece type. The opening and endgame tables are both accumulated at the same time.</p>
+            <p>Black pieces use the same tables, but their contribution is negative:</p>
+            <pre><code>case BN:
+    score_opening -= positional_score[OPENING][KNIGHT][mirror_score[square]];
+    score_endgame -= positional_score[ENDGAME][KNIGHT][mirror_score[square]];
+    knights++;
+    break;</code></pre>
+            <p>The square is passed through <code>mirror_score</code> because the piece-square tables are defined from White's perspective. Mirroring allows the same table to be reused for Black without maintaining a completely separate set of tables.</p>
+            <p>The result is elegant: one set of positional tables is enough for both sides. White reads the table normally, while Black reads the mirrored square and subtracts the result.</p>
+            <h4>Counting the Pieces</h4>
+            <p>While evaluating the board, ABC also counts knights, bishops, rooks, and queens:</p>
+            <pre><code>int knights = 0;
+int bishops = 0;
+int rooks = 0;
+int queens = 0;</code></pre>
+            <p>These counters are not used to evaluate material directly. Their purpose is to determine the <strong>game phase</strong>.</p>
+            <p>Notice that pawns and kings are not counted for this calculation. The phase is based on the amount of non-pawn material remaining, because the disappearance of these pieces is a useful indication that the game is moving toward the endgame.</p>
+            <h4>Determining the Game Phase</h4>
+            <p>Once the board has been evaluated, ABC calculates a phase score from the remaining knights, bishops, rooks, and queens.</p>
+            <pre><code>game_phase_score = knights * material_score[OPENING][KNIGHT];
+game_phase_score += bishops * material_score[OPENING][BISHOP];
+game_phase_score += rooks * material_score[OPENING][ROOK];
+game_phase_score += queens * material_score[OPENING][QUEEN];</code></pre>
+            <p>The result is compared with two predefined limits:</p>
+            <pre><code>if (game_phase_score &gt; opening_phase_score) game_phase = OPENING;
+else if (game_phase_score &lt; endgame_phase_score) game_phase = ENDGAME;
+else game_phase = MIDDLEGAME;</code></pre>
+            <p>This gives ABC three possible phases: <code>OPENING</code>, <code>MIDDLEGAME</code>, and <code>ENDGAME</code>.</p>
+            <p>When many pieces are still present, the phase score is high and the position is treated as an opening. When most of the major and minor pieces have disappeared, the score becomes low and the position is treated as an endgame. Positions between those limits belong to the middlegame.</p>
+            <h4>Blending Opening and Endgame Evaluation</h4>
+            <p>The most interesting case is the middlegame. ABC does not abruptly switch from one evaluation to another. Instead, it smoothly blends the opening and endgame scores.</p>
+            <pre><code>if (game_phase == MIDDLEGAME)
+    score = (
+        score_opening * game_phase_score +
+        score_endgame * (opening_phase_score - game_phase_score)
+    ) / opening_phase_score;</code></pre>
+            <p>When the phase score is closer to the opening threshold, the opening evaluation has more influence. As pieces disappear and the phase score falls, the endgame evaluation gradually receives more weight.</p>
+            <p>This is an important detail of the PeSTO method. The engine does not need to decide that one position is suddenly an opening and the next one is suddenly an endgame. Instead, the evaluation smoothly changes as the material disappears.</p>
+            <p>At the two extremes, no blending is necessary:</p>
+            <pre><code>else if (game_phase == OPENING) score = score_opening;
+else if (game_phase == ENDGAME) score = score_endgame;</code></pre>
+            <p>So an opening position uses the opening score directly, an endgame position uses the endgame score directly, and a middlegame position receives a weighted combination of both.</p>
+            <h4>Evaluating from the Side to Move</h4>
+            <p>Finally, ABC adjusts the result according to whose turn it is.</p>
+            <pre><code>return (side == WHITE) ? score : -score;</code></pre>
+            <p>Until this point, the score has been calculated from <strong>White's perspective</strong>: positive means the position favors White and negative means it favors Black.</p>
+            <p>The search, however, works from the perspective of the side that is currently moving. If it is White's turn, the score is returned unchanged. If it is Black's turn, the score is negated.</p>
+            <p>This small detail will become extremely important when we reach <strong>negamax</strong>. It allows the search to use the same logic for both players: every side simply tries to maximize its own score.</p>
+            <h4>A Simple Evaluation by Design</h4>
+            <p>There is a lot that ABC could add to this evaluation: mobility, pawn structure, king safety, passed pawns, bishop pair, rook activity, threats, and many other positional concepts. It deliberately does not do that here.</p>
+            <p>The evaluation is intentionally built around material and PeSTO piece-square tables. This keeps the method understandable while giving the search a meaningful foundation to work with. The real strength of the engine will come from what happens next: <strong>searching through the possible future positions and using this evaluation at the leaves of that search.</strong></p>
+            <h3>Move Ordering</h3>
+            <p>Once evaluation can tell ABC whether a position is good or bad, the next challenge is deciding <strong>which moves to search first</strong>. This matters enormously in alpha-beta search: finding strong moves early allows the search to cut off large parts of the move tree.</p>
+            <p>ABC uses a small set of heuristics to give every move an urgency score. It also needs a way to recognize repeated positions, which is where the position hashing system from the previous chapter comes into play.</p>
+            <h4>Scoring Moves</h4>
+            <pre><code>// Score urgency for move ordering
+int score_move(int move) {
+    if (pv_table[0][ply] == move) return 20000;
+    int score = mvv_lva[board[get_move_source(move)]][board[get_move_target(move)]];         
+    if (get_move_capture(move)) score += 10000;
+    else {
+        if (killer_moves[0][ply] == move) score = 9000;
+        else if (killer_moves[1][ply] == move) score = 8000;
+        else score = history_moves[board[get_move_source(move)]][get_move_target(move)] + 7000;
+    } return score;
+}</code></pre>
+            <p>The function assigns a numerical score to a move. A higher score means that ABC considers the move more urgent and therefore wants to search it earlier.</p>
+            <p>The first check gives the highest possible priority to the current <strong>principal variation</strong> move:</p>
+            <pre><code>if (pv_table[0][ply] == move) return 20000;</code></pre>
+            <p>If the move matches the move stored in the principal variation at the current search ply, ABC immediately gives it a score of <code>20000</code>. The PV represents the line that the search currently considers best, so trying that move first is usually a very good bet.</p>
+            <h4>Captures and MVV-LVA</h4>
+            <p>For other moves, ABC starts with the <strong>MVV-LVA</strong> score:</p>
+            <pre><code>int score = mvv_lva[board[get_move_source(move)]][board[get_move_target(move)]];</code></pre>
+            <p>MVV-LVA stands for <em>Most Valuable Victim - Least Valuable Attacker</em>. It gives captures a priority based on the value of the captured piece and the value of the attacking piece.</p>
+            <p>Captures then receive an additional bonus:</p>
+            <pre><code>if (get_move_capture(move)) score += 10000;</code></pre>
+            <p>This ensures that captures are normally searched before ordinary quiet moves. The exact MVV-LVA value then determines the ordering between captures.</p>
+            <h4>Killer Moves</h4>
+            <p>Quiet moves are handled differently. If a move is not a capture, ABC checks whether it is one of the two <strong>killer moves</strong> stored for the current search ply.</p>
+            <pre><code>if (killer_moves[0][ply] == move) score = 9000;
+else if (killer_moves[1][ply] == move) score = 8000;</code></pre>
+            <p>A killer move is a quiet move that previously caused a strong alpha-beta cutoff at the same depth of the search. The idea is simple: if a quiet move was powerful enough to cause a cutoff before, it is worth trying early again.</p>
+            <p>ABC keeps two killer moves for each ply and gives the first one a higher priority than the second.</p>
+            <h4>History Heuristic</h4>
+            <p>If the move is neither a capture nor a killer move, ABC falls back to the <strong>history heuristic</strong>:</p>
+            <pre><code>else score = history_moves[board[get_move_source(move)]][get_move_target(move)] + 7000;</code></pre>
+            <p>The history table records how successful particular quiet moves have been during previous searches. Moves with a stronger history score are therefore searched earlier.</p>
+            <p>The <code>7000</code> offset places ordinary history moves below killer moves while still keeping them above the base range of ordinary move scores.</p>
+            <h4>The Priority Hierarchy</h4>
+            <p>Putting the rules together, ABC effectively establishes this ordering:</p>
+            <pre><code>Principal variation move      20000
+Captures                      10000 + MVV-LVA
+First killer move             9000
+Second killer move            8000
+History moves                 7000 + history score</code></pre>
+            <p>This hierarchy gives the search a strong preference for moves that are likely to produce useful cutoffs. The exact values are not chess knowledge by themselves; they are simply arranged so that the different heuristics can be compared numerically.</p>
+            <h4>Sorting the Move List</h4>
+            <p>Once every move has a score, ABC sorts the move list from highest urgency to lowest.</p>
+            <pre><code>// Sort moves based on urgency
+void sort_moves(Movelist *moves) {
+    int move_scores[moves-&gt;count];
+    for (int count = 0; count &lt; moves-&gt;count; count++)
+        move_scores[count] = score_move(moves-&gt;moves[count]);
+    for (int current = 0; current &lt; moves-&gt;count; current++) {
+        for (int next = current + 1; next &lt; moves-&gt;count; next++) {
+            if (move_scores[current] &lt; move_scores[next]) {
+                int temp_score = move_scores[current];
+                move_scores[current] = move_scores[next];
+                move_scores[next] = temp_score;
+                int temp_move = moves-&gt;moves[current];
+                moves-&gt;moves[current] = moves-&gt;moves[next];
+                moves-&gt;moves[next] = temp_move;
+            }
+        }
+    }    
+}</code></pre>
+            <p>ABC first creates a temporary array containing the score of every move. It then compares the scores and swaps both the scores and their corresponding moves whenever a later move has a higher priority.</p>
+            <p>The result is a move list ordered from the most promising move to the least promising move.</p>
+            <p>The sorting algorithm itself is intentionally simple. A stronger implementation could use a more efficient sorting method or avoid fully sorting the list altogether. But for ABC, this straightforward implementation makes the relationship between move scores and move order easy to see.</p>
+            <h4>Why Move Ordering Matters</h4>
+            <p>Move ordering does not change the correctness of alpha-beta search. In principle, the engine can search the moves in any order and still reach the same result. What changes dramatically is <strong>how much of the tree must be searched</strong>.</p>
+            <p>If a strong move is searched early, alpha-beta can often prove that many other moves are unnecessary. If the best move is searched last, the engine may have to examine far more of the tree before reaching the same conclusion.</p>
+            <p>That is why these small heuristics have such a large effect on practical search performance.</p>
+            <h3>Repetition Detection</h3>
+            <p>Another helper handles a completely different search problem: detecting whether the current position has occurred before.</p>
+            <pre><code>// Position repetition detection
+int is_repetition() {
+    for (int index = 0; index &lt; repetition_index; index++)
+        if (repetition_table[index] == generate_hash_key()) return 1;
+    return 0;
+}</code></pre>
+            <p>ABC already stores previously encountered position hashes in <code>repetition_table</code>. To determine whether the current position is a repetition, the function generates the current position's hash and compares it against every stored hash.</p>
+            <pre><code>if (repetition_table[index] == generate_hash_key()) return 1;</code></pre>
+            <p>If a matching hash is found, the function immediately returns <code>1</code>. If the entire table is checked without finding a match, the function returns <code>0</code>.</p>
+            <p>This is where the position hashing code from the previous chapter becomes useful. Rather than comparing the entire board and its state against every previous position, ABC compares compact integer keys.</p>
+            <p>NOTE: Recalculating the hash from scratch is inefficient but straightforward and less error-prone; an optimized approach updates the hash incrementally with each move, trading simplicity for additional complexity.</p>
+            <p>These helpers prepare the search for what comes next. <code>sort_moves()</code> helps alpha-beta search the most promising moves first, while <code>is_repetition()</code> helps the search recognize drawn positions. Together with the evaluation function, they provide the basic tools ABC needs to begin actually searching the game tree.</p>
+            <h3>Quiescence Search</h3>
+            <p class="lead">A normal search stops at a fixed depth, but the position at that point may still be tactically unstable. Quiescence search extends the search selectively so that ABC does not evaluate a position in the middle of an unresolved capture sequence.</p>
+            <h4>Listening for Stop</h4>
+            <p>Quiescence search can visit a very large number of positions, so it must continue listening for the UCI <code>stop</code> command. Just like the main search, ABC calls <code>communicate()</code> periodically rather than at every node. The <code>nodes &amp; 2047</code> check keeps this overhead small.</p>
+            <pre><code>// Listen to UCI "stop" command
+if ((nodes &amp; 2047 ) == 0) communicate();
+
+// Count nodes
+nodes++;</code></pre>
+            <h4>Static Evaluation</h4>
+            <p>The first step is to evaluate the current position without making another move. This gives quiescence search a starting score and allows the usual alpha-beta bounds to be applied immediately.</p>
+            <pre><code>// Static evaluation
+int eval = evaluate_position();
+if (eval &gt;= beta) return beta;
+if (eval &gt; alpha) alpha = eval;</code></pre>
+            <p>If the static evaluation already reaches <code>beta</code>, the position is good enough to cause a cutoff and there is no reason to search further. Otherwise, if it improves <code>alpha</code>, the current position becomes the best result found so far.</p>
+            <h4>Searching Only Captures</h4>
+            <p>ABC then generates moves and orders them using the same <code>sort_moves()</code> used by the main search. However, the actual move-making call uses <code>ONLY_CAPTURES</code>. This means quiescence search does not continue playing ordinary quiet moves; it concentrates only on tactical captures that could change the evaluation.</p>
+            <pre><code>// Generate moves
+Movelist moves[1];
+generate_moves(moves);
+
+// Move ordering
+sort_moves(moves);</code></pre>
+            <pre><code>// Search best move
+for (int count = 0; count &lt; moves-&gt;count; count++) {      
+    Position position;
+    save_position(&amp;position); ply++;
+    if (!make_move(moves-&gt;moves[count], ONLY_CAPTURES)) { ply--; continue; }
+    int score = -quiescence_search(-beta, -alpha);
+    restore_position(&amp;position); ply--;
+    if (stopped == 1) break;
+    if (score &gt; alpha) {
+        alpha = score;
+        if (score &gt;= beta) return beta;
+    }
+} return alpha;</code></pre>
+            <p>Each candidate capture is played, and quiescence search calls itself from the opponent's point of view using the negated alpha-beta window. The position is then restored before trying the next move. The same <code>save_position()</code> and <code>restore_position()</code> mechanism used by the main search makes this recursive process straightforward.</p>
+            <p>If the recursive score improves <code>alpha</code>, ABC keeps it. If it reaches <code>beta</code>, the branch is cut off immediately. If the search was stopped, the loop terminates without continuing to explore more captures.</p>
             <div class="note">
-                <div class="note-title">The goal of ABC</div>
-                <p>ABC is primarily a <strong>didactic chess engine</strong>. Its purpose is to make the ideas behind a chess engine understandable by implementing them in relatively simple, explicit code.</p>
+                <div class="note-title">Why quiescence search matters</div>
+                <p>Without quiescence search, the main search could stop just before a capture and evaluate a position that is about to change dramatically. By continuing through tactical captures until the position becomes quieter, ABC gets a more stable evaluation at the search horizon.</p>
             </div>
-            <p>This distinction is important because throughout this book you will occasionally encounter code that could undoubtedly be made faster, shorter, or more sophisticated.</p>
-            <p>That is intentional.</p>
-            <p>A production chess engine has very different priorities. It may use highly optimized board representations, extensive caching, specialized move generation, aggressive search heuristics, platform-specific optimizations, and many other techniques whose primary purpose is to squeeze as much performance as possible from the hardware.</p>
-            <p>ABC takes a more modest approach. We want to be able to look at a function and understand what it is doing. We want the relationship between the chess concept and the C code to be visible.</p>
-            <p>Performance still matters. After all, a chess engine that cannot search deeply enough is not particularly interesting. But performance is not the only metric, and it is not always the most important one.</p>
-            <p>The central idea of this book is therefore simple: <strong>we are optimizing for understanding.</strong></p>
-            <p>If you are looking for a guide to building the strongest possible chess engine, this book is probably not the right place to start. If, however, you want to understand what happens inside a chess engine — how a position is represented, how moves are generated, how a position is evaluated, and how a search algorithm decides which move to play — then this is exactly what ABC is designed for.</p>
+            <h3>Negamax Search</h3>
+            <p class="lead">Negamax is the core of ABC's chess search. It recursively explores the game tree, evaluates positions from the current side's perspective, detects tactical and terminal positions, and uses alpha-beta pruning to discard branches that cannot improve the result.</p>
+            <h4>Preparing the Search</h4>
+            <pre><code>// Init params
+int legal_moves = 0;
+int old_alpha = alpha;
+pv_length[ply] = ply;</code></pre>
+            <p><code>legal_moves</code> tracks whether the position contains at least one legal move, which is important later for distinguishing checkmate from stalemate. <code>old_alpha</code> stores the original alpha value for the search node. The principal variation length is initialized to the current <code>ply</code>, preparing the PV table to be updated if a better move is found.</p>
+            <h4>Threefold Repetition</h4>
+            <pre><code>// 3 fold repetition detection
+if (ply &amp;&amp; is_repetition()) return 0;</code></pre>
+            <p>Before searching deeper, ABC checks for repetition. If the current position has already appeared in the repetition table, the position is treated as a draw and the search returns <code>0</code>. The <code>ply</code> check prevents the root position from being treated as an immediate repetition before any moves have been played.</p>
+            <h4>Stopping the Search</h4>
+            <pre><code>// Listen to UCI "stop" command
+if ((nodes &amp; 2047 ) == 0) communicate();</code></pre>
+            <p>Search can become extremely large, so ABC periodically calls <code>communicate()</code> to process UCI commands such as <code>stop</code>. Checking every 2048 nodes keeps the search responsive without adding significant overhead to every node.</p>
+            <h4>Reaching the Quiescence Search</h4>
+            <pre><code>// Search until no captures left
+if (!depth) return quiescence_search(alpha, beta);</code></pre>
+            <p>When the requested search depth reaches zero, ABC does not immediately evaluate the position. Instead, it enters <code>quiescence_search()</code>, which continues through tactical captures until the position is sufficiently quiet. This prevents the horizon of the main search from ending in the middle of an important tactical sequence.</p>
+            <h4>Counting Nodes and Extending Check</h4>
+            <pre><code>// Count nodes
+nodes++;
+
+// Search deeper if in check
+int in_check = is_square_attacked(king_square[side], side ^ 1);
+if (in_check) depth++;</code></pre>
+            <p>Every normal search node is counted in <code>nodes</code>. ABC then checks whether the side to move is currently in check. If it is, the search depth is extended by one ply. This is a simple form of check extension: positions where the king is under immediate threat deserve additional search because stopping there could produce an unstable evaluation.</p>
+            <h4>Generating and Ordering Moves</h4>
+            <pre><code>// Generate moves
+Movelist moves[1];
+generate_moves(moves);
+
+// Move ordering
+sort_moves(moves);</code></pre>
+            <p>ABC generates the available moves and immediately orders them. This is crucial for alpha-beta search: when strong moves are examined first, the search is much more likely to discover cutoffs early and avoid exploring unnecessary branches.</p>
+            <h4>Recursive Negamax</h4>
+            <pre><code>// Search best move
+for (int count = 0; count &lt; moves-&gt;count; count++) {
+    int move = moves-&gt;moves[count];
+    Position position;
+    save_position(&amp;position); ply++;
+    repetition_index++;
+    repetition_table[repetition_index] = generate_hash_key();
+    if (!make_move(move, ALL_MOVES)) { ply--; repetition_index--; continue; }
+    legal_moves++; int score = 0;
+    score = -negamax_search(-beta, -alpha, depth - 1);
+    restore_position(&amp;position); ply--; repetition_index--;
+    if (stopped == 1) break;
+    if (score &gt; alpha) {
+        history_moves[board[get_move_source(move)]][get_move_target(move)] += depth;
+        alpha = score;
+        pv_table[ply][ply] = move;
+        for (int i = ply + 1; i &lt; pv_length[ply + 1]; i++) pv_table[ply][i] = pv_table[ply + 1][i];
+        pv_length[ply] = pv_length[ply + 1];
+        if (score &gt;= beta) {
+            killer_moves[1][ply] = killer_moves[0][ply];
+            killer_moves[0][ply] = move;
+            return beta;
+        }
+    }
+}</code></pre>
+            <p>Each move is searched from the opponent's perspective. ABC first saves the position, advances the search ply, records the resulting position for repetition detection, and attempts to make the move. Illegal moves are discarded by <code>make_move()</code>.</p>
+            <p>The recursive call is the essence of negamax:</p>
+            <pre><code>score = -negamax_search(-beta, -alpha, depth - 1);</code></pre>
+            <p>Instead of maintaining separate maximizing and minimizing code, negamax relies on the fact that one player's advantage is the other player's disadvantage. The recursive search therefore receives the negated alpha-beta window, and its result is negated when it returns.</p>
+            <h4>Updating the Best Move</h4>
+            <pre><code>if (score &gt; alpha) {
+    history_moves[board[get_move_source(move)]][get_move_target(move)] += depth;
+    alpha = score;
+    pv_table[ply][ply] = move;
+    for (int i = ply + 1; i &lt; pv_length[ply + 1]; i++)
+        pv_table[ply][i] = pv_table[ply + 1][i];
+    pv_length[ply] = pv_length[ply + 1];</code></pre>
+            <p>When a move produces a score better than the current alpha bound, ABC has found a new best move at this node. The history heuristic is rewarded according to the current search depth, helping the move become more attractive in future move ordering.</p>
+            <p>The principal variation is also updated. The current move is placed at the beginning of the PV, followed by the continuation found by the child search. In this way, the PV table gradually describes the best line discovered through the recursive search.</p>
+            <h4>Alpha-Beta Cutoff</h4>
+            <pre><code>if (score &gt;= beta) {
+    killer_moves[1][ply] = killer_moves[0][ply];
+    killer_moves[0][ply] = move;
+    return beta;
+}</code></pre>
+            <p>If the score reaches or exceeds <code>beta</code>, the remaining moves do not need to be searched. The current move has proven strong enough to cause an alpha-beta cutoff, so ABC immediately returns <code>beta</code>.</p>
+            <p>This move is also stored as the first killer move for the current ply, while the previous first killer becomes the second. Killer moves are particularly useful because a quiet move that caused a cutoff here may be a strong candidate for causing a cutoff again at the same depth elsewhere in the tree.</p>
+            <h4>Checkmate and Stalemate</h4>
+            <pre><code>// Checkmate / Stalemate detection
+if (!legal_moves) {
+    if (in_check) return -49000 + ply;
+    else return 0;
+} return alpha;</code></pre>
+            <p>After all generated moves have been examined, ABC checks whether any legal move existed. If there were none and the king is in check, the position is checkmate and a large negative score is returned. The <code>ply</code> adjustment makes a mate found sooner preferable to an equally scored mate found deeper in the tree.</p>
+            <p>If there are no legal moves but the king is not in check, the position is stalemate and the result is a draw, represented by <code>0</code>. Otherwise, the best score found during the search is simply returned as <code>alpha</code>.</p>
+            <div class="note">
+                <div class="note-title">The heart of ABC</div>
+                <p>This single recursive function brings together many of the systems built so far: move generation, legality checking, position restoration, repetition detection, quiescence search, move ordering, the history and killer heuristics, principal variation tracking, and alpha-beta pruning. The search itself is deliberately understandable; each optimization is added around the basic recursive idea rather than hiding it.</p>
+            </div>
+            <h3>Iterative Deepening and UCI Output</h3>
+            <p class="lead">The final piece of ABC's search is the function that connects the search algorithm to the outside world. Called directly by the UCI interface, <code>search_position()</code> prepares a new search, repeatedly deepens it, reports its progress, and finally returns the best move found in the principal variation.</p>
+            <h4>Starting a New Search</h4>
+            <pre><code>// search position
+int search_position(int depth)
+{
+    int start = get_time_ms();
+    // Clear search
+    nodes = 0;
+    stopped = 0;
+    ply = 0;
+    memset(pv_table, 0, sizeof(pv_table));
+    memset(pv_length, 0, sizeof(pv_length));
+    memset(killer_moves, 0, sizeof(killer_moves));
+    memset(history_moves, 0, sizeof(history_moves));</code></pre>
+            <p>Every search begins with a clean search state. ABC records the start time, resets the node counter and stop flag, and returns the search ply to zero. The principal variation, killer moves, and history heuristic are also cleared so that the new search starts without stale information from the previous position.</p>
+            <h4>Iterative Deepening</h4>
+            <pre><code>// Iterative deepening
+for (int current_depth = 1; current_depth &lt;= depth; current_depth++) {
+    // Search position with current depth
+    int score = negamax_search(-50000, 50000, current_depth);
+    if (stopped == 1) break;</code></pre>
+            <p>ABC does not immediately search to the requested depth. Instead, it uses <strong>iterative deepening</strong>: first depth 1, then depth 2, then depth 3, and so on until the requested depth is reached or the search is stopped.</p>
+            <p>This gives the engine a useful result even when it cannot finish the deepest search. Every completed iteration has produced a complete principal variation, while deeper iterations can use the information from previous iterations for move ordering.</p>
+            <p>The search uses the full numerical window from <code>-50000</code> to <code>50000</code>. These values represent the practical search limits of ABC, with mate scores handled separately around <code>±49000</code>.</p>
+            <h4>Reporting Search Information</h4>
+            <pre><code>// Output UCI info
+if (score &gt; -49000 &amp;&amp; score &lt; -48000)
+    printf("info score mate %d depth %d nodes %lld time %d pv ", -(score + 49000) / 2 - 1, current_depth, nodes, get_time_ms() - start);
+else if (score &gt; 48000 &amp;&amp; score &lt; 49000)
+    printf("info score mate %d depth %d nodes %lld time %d pv ", (49000 - score) / 2 + 1, current_depth, nodes, get_time_ms() - start);
+else printf("info score cp %d depth %d nodes %lld time %d pv ", score, current_depth, nodes, get_time_ms() - start);</code></pre>
+            <p>After every completed iteration, ABC reports the result using the UCI <code>info</code> format. A normal evaluation is reported as centipawns with <code>score cp</code>. Scores close to the mate range are converted into a mate distance and reported with <code>score mate</code>.</p>
+            <p>The engine also reports the completed search depth, number of nodes searched, elapsed time, and principal variation. This information allows a UCI chess interface to display what the engine is currently thinking about.</p>
+            <h4>Printing the Principal Variation</h4>
+            <pre><code>for (int i = 0; i &lt; pv_length[0]; i++) {
+    int move = pv_table[0][i];
+    print_move(get_move_source(move), get_move_target(move), get_move_promoted(move));
+} printf("\n"); fflush(stdout);</code></pre>
+            <p>The principal variation stored at the root is converted back into UCI move notation using <code>print_move()</code>. The PV is the line of moves that the search currently considers best, so it gives the GUI a human-readable view of the engine's calculation.</p>
+            <p><code>fflush(stdout)</code> is important here because UCI communication is interactive. ABC immediately sends its output to the GUI instead of allowing it to remain buffered.</p>
+            <h4>Returning the Best Move</h4>
+            <pre><code>// print best move
+int move = pv_table[0][0];
+printf("\nbestmove ");
+print_move(get_move_source(move), get_move_target(move), get_move_promoted(move));
+printf("\n");</code></pre>
+            <p>Once iterative deepening finishes, the first move of the root principal variation is the engine's chosen move. ABC prints it using the UCI <code>bestmove</code> command, completing the communication required by the GUI.</p>
+            <h4>The Complete Search Pipeline</h4>
+            <p>With this function, the pieces of ABC's search finally come together. The UCI interface calls <code>search_position()</code>, which repeatedly invokes <code>negamax_search()</code>. Negamax uses alpha-beta pruning, move ordering, killer and history heuristics, repetition detection, check extensions, and quiescence search. The evaluation function provides the numerical judgment of each position, while the principal variation records the best line found.</p>
+            <p>The result is a deliberately simple but complete chess-engine search pipeline: <strong>UCI command → iterative deepening → negamax → quiescence → evaluation → principal variation → best move</strong>.</p>
+            <div class="note">
+                <div class="note-title">Why iterative deepening is so useful</div>
+                <p>Iterative deepening may appear wasteful because the engine searches the same position at several depths, but the earlier searches are valuable. They establish a strong principal variation and useful move-ordering information before the next, more expensive iteration begins. More importantly for ABC, if the search is stopped during a deeper iteration, the last completed iteration has already produced a valid result.</p>
+            </div>
         </article>
     </main>
 </body>
