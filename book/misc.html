@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Miscellaneous Functions — ABC</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="book">
+        <article class="chapter">
+            <div class="chapter-label">Chapter 12</div>
+            <h2>Miscellaneous Functions</h2>
+            <p class="lead">The final functions in ABC are small utilities that connect the search with the outside world. They provide a portable millisecond timer and allow the engine to notice commands such as <code>stop</code> and <code>quit</code> while it is thinking.</p>
+            <pre><code>int get_time_ms() {
+    #ifdef WIN64
+        return GetTickCount ();
+    #else
+        struct timeval t;
+        gettimeofday (&amp;t, NULL);
+        return t.tv_sec*1000 + t.tv_usec/1000;
+    #endif	
+}
+
+// Interact between search and GUI input
+void communicate() {
+    if(timeset == 1 &amp;&amp; get_time_ms() &gt; stoptime) stopped = 1;
+    read_input();
+}
+
+// read GUI/user input
+void read_input() {
+    int bytes;
+    char input[256] = "", *endc;
+    if (input_waiting()) {
+        stopped = 1;
+        do bytes=read(fileno(stdin), input, 256);
+        while (bytes &lt; 0);
+        endc = strchr(input,'\n');
+        if (endc) *endc=0;
+        if (strlen(input) &gt; 0) {
+            if (!strncmp(input, "quit", 4)) quit = 1;
+            else if (!strncmp(input, "stop", 4)) quit = 1;
+        }   
+    }
+}
+
+// Listen to GUI input during search
+int input_waiting() {
+    #ifndef WIN32
+        fd_set readfds;
+        struct timeval tv;
+        FD_ZERO (&amp;readfds);
+        FD_SET (fileno(stdin), &amp;readfds);
+        tv.tv_sec=0; tv.tv_usec=0;
+        select(16, &amp;readfds, 0, 0, &amp;tv);
+        return (FD_ISSET(fileno(stdin), &amp;readfds));
+    #else
+        static int init = 0, pipe;
+        static HANDLE inh;
+        DWORD dw;
+        if (!init) {
+            init = 1;
+            inh = GetStdHandle(STD_INPUT_HANDLE);
+            pipe = !GetConsoleMode(inh, &amp;dw);
+            if (!pipe) {
+                SetConsoleMode(inh, dw &amp; ~(ENABLE_MOUSE_INPUT|ENABLE_WINDOW_INPUT));
+                FlushConsoleInputBuffer(inh);
+            }
+        } if (pipe) {
+           if (!PeekNamedPipe(inh, NULL, 0, NULL, &amp;dw, NULL)) return 1;
+           return dw;
+        } else {
+           GetNumberOfConsoleInputEvents(inh, &amp;dw);
+           return dw &lt;= 1 ? 0 : dw;
+        }
+    #endif
+}</code></pre>
+            <h3>Measuring Time</h3>
+            <p><code>get_time_ms()</code> provides a simple millisecond timer. On Windows it uses <code>GetTickCount()</code>, while on other systems it uses <code>gettimeofday()</code>. The rest of the engine can therefore work with the same time representation regardless of the operating system.</p>
+            <h3>Communicating During Search</h3>
+            <p><code>communicate()</code> is called periodically by the search. It first checks whether the allocated search time has expired and sets <code>stopped</code> when the deadline is reached. It then calls <code>read_input()</code> so the engine can also react to commands from the GUI.</p>
+            <h3>Reading Stop and Quit</h3>
+            <p><code>read_input()</code> first checks whether input is waiting. If it is, the command is read from standard input and the newline is removed. The important commands here are <code>quit</code> and <code>stop</code>. Both cause the engine to signal that the current search should stop; <code>quit</code> additionally sets <code>quit</code> so the main UCI loop can terminate.</p>
+            <h3>Checking for Input</h3>
+            <p>The last function, <code>input_waiting()</code>, is the platform-specific part. On Unix-like systems, <code>select()</code> performs a non-blocking check of standard input. On Windows, the function handles both pipe input and console input using the appropriate Windows APIs.</p>
+            <p>These utilities are small, but they complete an important part of the engine architecture: the search does not have to block while waiting for the GUI. It can continue thinking, periodically check the clock and input, and stop when the GUI or time control asks it to.</p>
+            <p>With these functions in place, the implementation of ABC is complete. From the 0x88 board and move encoding all the way through evaluation, search, UCI communication, and time management, every major component of the engine is now connected.</p>
+        </article>
+    </main>
+</body>
+</html>
