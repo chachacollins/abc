@@ -136,7 +136,7 @@ For example:
 gcc -Ofast -flto *.c -o abc.exe
 ```
 
-or just
+or just:
 
 ```bash
 make
