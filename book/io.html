@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Input & Output Functions — ABC</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="book">
+        <article class="chapter">
+            <div class="chapter-label">Chapter 6</div>
+            <h2>Input & Output Functions</h2>
+            <h3>Parsing FEN</h3>
+            <p>The first function in <code>io.c</code> is <code>set_board()</code>. Its job is to take a <strong>FEN</strong> string and turn it into the complete internal position used by ABC.</p>
+            <pre><code>void set_board(char *fen) {</code></pre>
+            <p>FEN, or <strong>Forsyth-Edwards Notation</strong>, is a compact text representation of a chess position. It describes the pieces on the board as well as the side to move, castling rights, and en passant square. This makes it ideal for communicating positions between a chess GUI, a chess engine, and testing tools.</p>
+            <h4>Clearing the Board</h4>
+            <p>Before reading the new position, ABC first clears every valid square of its 0x88 board:</p>
+            <pre><code>for (int rank = 0; rank < 8; rank++) {
+    for (int file = 0; file < 16; file++) {
+        int square = rank * 16 + file;
+        if (!(square &amp; 0x88)) board[square] = EMPTY;
+    }
+}</code></pre>
+            <p>The two loops cover the entire 8 × 16 structure used by the 0x88 representation. The <code>0x88</code> test filters out the unused squares, leaving only the 64 real chessboard squares to be cleared.</p>
+            <p>This is important because <code>set_board()</code> may be called repeatedly. A new FEN must completely replace the previous position rather than leaving pieces from an earlier position behind.</p>
+            <h4>Clearing the Game State</h4>
+            <p>ABC then resets the parts of the position that are not represented by pieces on the board:</p>
+            <pre><code>side = NONE;
+castle = EMPTY;
+enpassant = NONE;
+
+repetition_index = 0;
+memset(repetition_table, 0ULL, sizeof(repetition_table));</code></pre>
+            <p>The side to move, castling rights, and en passant square are cleared before the corresponding fields are read from the FEN string. The repetition information is also reset because a newly loaded position starts a new sequence of positions for repetition detection.</p>
+            <h4>Placing the Pieces</h4>
+            <p>The first field of a FEN string describes the board rank by rank, starting from rank 8 and finishing at rank 1. ABC walks through its 0x88 board in the same order while reading the FEN characters.</p>
+            <pre><code>if ((*fen &gt;= 'a' &amp;&amp; *fen &lt;= 'z') || (*fen &gt;= 'A' &amp;&amp; *fen &lt;= 'Z')) {
+    if (*fen == 'K') king_square[WHITE] = square;
+    else if (*fen == 'k') king_square[BLACK] = square;
+    board[square] = char_pieces[*fen];
+    *fen++;
+}</code></pre>
+            <p>When ABC encounters a letter, it represents a piece. The character is used directly as an index into the <code>char_pieces</code> lookup table, converting the FEN character into the internal piece encoding used by the engine.</p>
+            <p>The kings receive one additional treatment. Whenever <code>K</code> or <code>k</code> is encountered, ABC records its square in <code>king_square</code>. This keeps the king locations synchronized with the newly loaded board.</p>
+            <p>FEN also represents consecutive empty squares using digits. ABC converts the digit into an offset and advances through that many board positions:</p>
+            <pre><code>if (*fen &gt;= '0' &amp;&amp; *fen &lt;= '9') {
+    int offset = *fen - '0';
+    if (!(board[square])) file--;
+    file += offset;
+    *fen++;
+}</code></pre>
+            <p>A digit therefore allows the FEN parser to skip several empty squares without having to process each one individually. The <code>/</code> character marks the end of a rank, allowing the parser to continue with the next rank.</p>
+            <h4>Side to Move</h4>
+            <p>After the board description, the next FEN field specifies whose turn it is:</p>
+            <pre><code>*fen++;
+side = (*fen == 'w') ? WHITE : BLACK;
+fen += 2;</code></pre>
+            <p>ABC converts <code>w</code> into <code>WHITE</code> and anything other than <code>w</code> into <code>BLACK</code>. The parser then advances to the castling field.</p>
+            <h4>Castling Rights</h4>
+            <p>The next FEN field describes the castling rights. ABC reads each character and sets the corresponding bit in <code>castle</code>:</p>
+            <pre><code>while (*fen != ' ') {
+    switch(*fen) {
+        case 'K': castle |= WKC; break;
+        case 'Q': castle |= WQC; break;
+        case 'k': castle |= BKC; break;
+        case 'q': castle |= BQC; break;
+        case '-': break;
+    }
+    *fen++;
+}</code></pre>
+            <p>Because castling rights are stored as bit flags, multiple rights can be combined into the single <code>castle</code> variable. For example, a FEN containing <code>KQkq</code> enables all four rights, while <code>-</code> means that no castling rights remain.</p>
+            <h4>En Passant Square</h4>
+            <p>The final field handled by this function is the en passant target square:</p>
+            <pre><code>*fen++;
+if (*fen != '-') {
+    int file = fen[0] - 'a';
+    int rank = 8 - (fen[1] - '0');
+    enpassant = rank * 16 + file;
+} else {
+    enpassant = NONE;
+}</code></pre>
+            <p>If the field contains <code>-</code>, there is no en passant square. Otherwise, ABC converts the algebraic coordinate from the FEN string into its corresponding 0x88 square index.</p>
+            <p>At the end of <code>set_board()</code>, the FEN string has therefore been transformed into the complete internal representation used by ABC: the board contains the correct pieces, both king locations are known, the side to move is set, castling rights are restored, the en passant square is available, and the repetition state has been reset.</p>
+            <p>This function forms an important boundary between the outside world and the engine itself. A position arrives as human-readable text, while the rest of ABC can work entirely with its compact internal data structures.</p>
+            <h3>Printing the Board</h3>
+            <p>Once a position has been loaded, ABC needs a simple way to inspect it. The <code>print_board()</code> function provides a human-readable representation of the current board and its associated game state directly in the console.</p>
+            <pre><code>void print_board() {</code></pre>
+            <h4>Displaying the Board</h4>
+            <p>The function first walks through the same 0x88 board representation used internally by the engine:</p>
+            <pre><code>for (int rank = 0; rank &lt; 8; rank++) {
+    for (int file = 0; file &lt; 16; file++) {
+        int square = rank * 16 + file;
+        if (file == 0) printf(" %d  ", 8 - rank);
+        if (!(square &amp; 0x88)) printf("%c ", ascii_pieces[board[square]]);
+    }
+}</code></pre>
+            <p>The <code>0x88</code> test again filters out the unused positions of the board representation. Each valid square is converted into a character using the <code>ascii_pieces</code> lookup table, allowing the internal piece values to be displayed as familiar chess pieces.</p>
+            <p>The rank number is printed at the beginning of each row, while the file letters are printed underneath the board. The result is a compact chessboard that can be read directly from the console.</p>
+            <h4>Displaying Castling Rights</h4>
+            <p>After printing the board, the function extracts the four castling flags from the <code>castle</code> variable:</p>
+            <pre><code>int K = castle &amp; WKC;
+int Q = castle &amp; WQC;
+int k = castle &amp; BKC;
+int q = castle &amp; BQC;</code></pre>
+            <p>Each bit is tested independently. If a right is available, its corresponding letter is printed; otherwise a <code>-</code> is displayed. This produces the familiar FEN-style representation such as <code>KQkq</code> or <code>K--q</code>.</p>
+            <h4>Displaying Game State</h4>
+            <p>The function then prints several other important pieces of information:</p>
+            <pre><code>printf("    Side:     %s\n", (side == WHITE) ? "white": "black");
+printf("    Castling:  %c%c%c%c\n", K ? 'K' : '-', Q ? 'Q' : '-', k ? 'k' : '-', q ? 'q' : '-');
+printf("    Enpassant:   %s\n", (enpassant == NONE)? "no" : square_to_coords[enpassant]);
+printf("    King square: %s\n", square_to_coords[king_square[side]]);
+printf("    Hash:        %d\n\n", generate_hash_key());</code></pre>
+            <p>The side to move is displayed as either <code>white</code> or <code>black</code>. The en passant square is converted from its internal 0x88 index back into algebraic notation using <code>square_to_coords</code>.</p>
+            <p>The current king square and the position hash are also printed. These values are particularly useful when debugging the engine because they allow the programmer to verify that the internal state matches the position shown on the board.</p>
+            <h3>Printing Moves</h3>
+            <p>The last helper in <code>io.c</code> is <code>print_move()</code>. Its purpose is simple: convert the internal representation of a move into the coordinate notation used by UCI and print it to the console.</p>
+            <pre><code>void print_move(int source, int target, int promoted) {
+    char *src = square_to_coords[source];
+    char *dst = square_to_coords[target];
+    char prom = promoted_pieces[promoted];
+    printf("%s%s%c ", src, dst, prom);
+}</code></pre>
+            <p>Internally, ABC represents a move using numerical square indices. The <code>source</code> and <code>target</code> values therefore need to be converted back into algebraic coordinates before the move can be displayed.</p>
+            <pre><code>char *src = square_to_coords[source];
+char *dst = square_to_coords[target];</code></pre>
+            <p>The <code>square_to_coords</code> lookup table performs this conversion. A source square such as <code>E2</code> becomes <code>"e2"</code>, while a target square such as <code>E4</code> becomes <code>"e4"</code>.</p>
+            <p>Promotion requires one additional character. The <code>promoted</code> piece value is converted through the <code>promoted_pieces</code> lookup table:</p>
+            <pre><code>char prom = promoted_pieces[promoted];</code></pre>
+            <p>For an ordinary move, this value is simply the character associated with the empty promotion value. For a promotion, it becomes <code>q</code>, <code>r</code>, <code>b</code>, or <code>n</code>, producing the standard UCI representation.</p>
+            <p>Finally, the three components are printed together:</p>
+            <pre><code>printf("%s%s%c ", src, dst, prom);</code></pre>
+            <p>A move such as <code>e2e4</code> can therefore be produced from the internal source and target squares, while a promotion such as <code>e7e8q</code> additionally includes the promoted piece.</p>
+            <p>This small function completes the basic input and output helpers in <code>io.c</code>. Positions can be read from FEN, the internal board can be inspected in the console, and individual moves can be converted back into the notation expected by the outside world.</p>
+        </article>
+    </main>
+</body>
+</html>

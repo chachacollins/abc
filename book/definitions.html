@@ -9,8 +9,9 @@
 <body>
     <main class="book">
         <article class="chapter">
+            <div class="chapter-label">Chapter 5</div>
             <h2>Global Definitions</h2>
-            <h3>Chess Board Representation</h3>
+            <h3>Board Representation</h3>
                 <p>The first variables in <code>defs.c</code> contain the information that describes the current chess position. Together, they form the basic state of the board that the rest of the engine works with.</p>
                 <pre><code>int board[128];
 int king_square[2] = {E1, E8};
@@ -23,6 +24,60 @@ int castle = 15;</code></pre>
             <p>Keeping the king locations separately means the engine does not have to search through the entire board every time it needs to know where a king is. This is especially important when checking whether a king is in check or whether a generated move is legal.</p>
             <p>The <code>side</code> variable stores whose turn it is to move. It starts as <code>WHITE</code>, because White makes the first move in the standard starting position. During play, this value switches between <code>WHITE</code> and <code>BLACK</code> after each move.</p>
             <p>The <code>enpassant</code> variable stores the square where an en passant capture is currently possible. At the beginning of a game there is no such square, so it is initialized to <code>NONE</code>. When a pawn makes a two-square advance, the engine can update this variable so that the opponent can recognize the special capture on the following move.</p>
+            <h3>Piece Encoding</h3>
+            <p>Although the piece definitions themselves are located in <code>abc.h</code> rather than <code>defs.c</code>, this is a good place to explain why the pieces are encoded the way they are, since many of the lookup tables in <code>defs.c</code> depend on this representation.</p>
+            <pre><code>enum types {
+    NONE = -1,
+    EMPTY,
+    KING,
+    PAWN,
+    KNIGHT,
+    BISHOP,
+    ROOK,
+    QUEEN
+};
+
+enum pieces {
+    WK = 1, WP, WN, WB, WR, WQ,
+    BK = 9, BP, BN, BB, BR, BQ
+};</code></pre>
+            <p>The piece values are not arbitrary. They are arranged so that a single integer contains both the <strong>piece type</strong> and the <strong>piece color</strong>.</p>
+            <pre><code>White pieces: 1 - 6
+Black pieces: 9 - 14</code></pre>
+            <p>The lower three bits store the piece type:</p>
+            <pre><code>piece &amp; 7</code></pre>
+            <p>This operation extracts values from <code>1</code> to <code>6</code>, corresponding to:</p>
+            <pre><code>1 = KING
+2 = PAWN
+3 = KNIGHT
+4 = BISHOP
+5 = ROOK
+6 = QUEEN</code></pre>
+            <p>For example:</p>
+            <pre><code>WP = 2      0010
+WN = 3      0011
+WR = 5      0101
+
+BP = 10     1010
+BN = 11     1011
+BR = 13     1101</code></pre>
+            <pre><code>10 &amp; 7 = 2   → pawn
+13 &amp; 7 = 5   → rook</code></pre>
+            <p>The fourth bit stores the color information:</p>
+            <pre><code>piece >> 3</code></pre>
+            <p>This produces:</p>
+            <pre><code>White → 0
+Black → 1</code></pre>
+            <p>For example:</p>
+            <pre><code>5 >> 3   = 0   → white
+13 >> 3  = 1   → black</code></pre>
+            <p>This encoding allows many operations to be expressed with very compact code. Instead of maintaining separate arrays for white and black pieces or writing long chains of comparisons, ABC can determine the type and color of a piece using simple bit operations.</p>
+            <p>This becomes particularly useful in move generation. A move generator often needs to ask questions such as:</p>
+            <pre><code>What type of piece is this?
+Which side does it belong to?
+Which movement rules apply?</code></pre>
+            <p>With this encoding, those answers can be obtained directly from a single integer value. This leads to concise and elegant move-generation code, which is one of the design goals of ABC.</p>
+            <p>The practical use of this representation will become more apparent later when we examine <strong>move generation</strong>.</p>
             <h3>Encoding Castling Rights</h3>
             <p>The <code>castle</code> variable stores all four castling rights inside a single integer using <strong>bit flags</strong>. The four rights are defined by the <code>castling</code> enum:</p>
             <pre><code>enum castling {

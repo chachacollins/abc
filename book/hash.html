@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Position Hashing — ABC</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="book">
+        <article class="chapter">
+            <div class="chapter-label">Chapter 9</div>
+            <h2>Position Hashing</h2>
+            <p>Chess engines often need a compact way to identify a position. Instead of comparing an entire board and every piece of game state, we can generate a single number that represents the current position. This is called a <strong>position hash</strong>.</p>
+            <p>ABC uses position hashing for one specific purpose: <strong>threefold repetition detection</strong>. It does not use the hash as a transposition table key, because ABC does not have a search hash table. The goal here is therefore not to make the search faster, but simply to recognize when the same position has occurred before.</p>
+            <h4>Generating Random Numbers</h4>
+            <p>First, ABC needs a collection of pseudo-random numbers. These numbers will later become the hash keys for individual pieces on individual squares.</p>
+            <pre><code>// Generate 32-bit pseudo random numbers (signed)
+int get_random_32_number() {
+  int number = random_state;
+  number ^= number &lt;&lt; 13;
+  number ^= number &gt;&gt; 17;
+  number ^= number &lt;&lt; 5;
+  random_state = number;
+  return number;
+}</code></pre>
+            <p>The function uses a small <strong>xorshift</strong>-style algorithm. It starts with the current <code>random_state</code>, applies a sequence of XOR and bit-shift operations, stores the new state, and returns it.</p>
+            <p>The important property here is that repeated calls produce a sequence of different pseudo-random 32-bit values. They do not need to be cryptographically random. They simply need to provide sufficiently varied values for constructing position keys.</p>
+            <h4>Initializing the Hash Keys</h4>
+            <p>ABC creates a random key for every combination of piece type and square.</p>
+            <pre><code>// Init random hash keys
+void init_random_keys() {
+  for (int piece = 0; piece &lt; 7; piece++)
+    for (int square = 0; square &lt; 128; square++)
+      piece_keys[piece][square] = get_random_32_number();
+}</code></pre>
+            <p>The <code>piece_keys</code> array contains seven sets of keys, one for each piece type, and 128 possible 0x88 square indices. During initialization, every entry receives a pseudo-random value.</p>
+            <p>For example, the key for a knight on one square is different from the key for the same knight on another square. This gives the final hash enough information to distinguish different arrangements of pieces.</p>
+            <h4>Building the Position Hash</h4>
+            <p>Once the keys have been initialized, ABC can generate a hash for the current board.</p>
+            <pre><code>// Generate "almost" unique position ID aka hash key from scratch
+int generate_hash_key() {
+  int final_key = 0;
+  for (int square = 0; square &lt; 128; square++) {
+    if (square&amp;0x88) continue;
+    char piece = board[square] &amp; 7;
+    if (piece) {
+      final_key ^= piece_keys[piece][square];
+      final_key ^= board[square] &gt;&gt; 3;
+    }
+  } return final_key;
+}</code></pre>
+            <p>The function starts with a hash value of zero and walks through the entire 0x88 board. Invalid 0x88 squares are skipped, leaving only the real chessboard squares.</p>
+            <p>For every occupied square, the expression <code>board[square] &amp; 7</code> extracts the piece type. ABC then XORs the corresponding random key into <code>final_key</code>.</p>
+            <pre><code>final_key ^= piece_keys[piece][square];</code></pre>
+            <p>The color of the piece is also incorporated:</p>
+            <pre><code>final_key ^= board[square] &gt;&gt; 3;</code></pre>
+            <p>Because ABC encodes the color in the upper part of its piece value, shifting the value right by three bits produces a value representing the side of the piece. This means that the same piece on the same square produces a different contribution depending on whether it is white or black.</p>
+            <h4>Combining the Position</h4>
+            <p>The key idea behind this hash is the XOR operation. Every occupied square contributes a value to the final hash, and XOR combines those contributions into one 32-bit number.</p>
+            <p>This gives us a compact fingerprint of the board position. Two identical positions will produce the same hash, while different positions will normally produce different hashes. It is not mathematically guaranteed that every possible chess position has a unique 32-bit value, which is why the function describes the result as an <em>"almost" unique</em> position ID.</p>
+            <p>For ABC, that small possibility of collision is an acceptable trade-off. The hash is used specifically for detecting threefold repetition, rather than as a critical cache key for a large search transposition table.</p>
+            <h4>Why Not a Search Hash Table?</h4>
+            <p>Many stronger chess engines use position hashes as keys for a <strong>transposition table</strong>, allowing the search to remember previously analyzed positions and reuse their results. ABC deliberately does not do this.</p>
+            <p>Here, hashing has a much narrower responsibility: when ABC needs to determine whether a position has appeared repeatedly, it can generate a compact identifier and compare it with previously stored position keys.</p>
+            <p>This keeps the implementation focused. ABC gets the useful property of position identification without introducing the additional complexity of a full search transposition table.</p>
+        </article>
+    </main>
+</body>
+</html>

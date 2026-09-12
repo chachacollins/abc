@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perft Testing — ABC</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="book">
+        <article class="chapter">
+            <div class="chapter-label">Chapter 8</div>
+            <h2>Perft Testing</h2>
+            <p>Before trusting a chess engine to search positions intelligently, we need to know that its move generation and move execution are actually correct. This is where <strong>perft testing</strong> becomes extremely useful.</p>
+            <p>Perft is short for <em>performance test</em>. Instead of evaluating positions or searching for the best move, the engine simply explores every legal move to a given depth and counts how many positions it reaches. Because the expected node counts for well-known chess positions are known, perft gives us a precise way to find bugs in move generation and move making.</p>
+            <h4>Traversing the Move Tree</h4>
+            <p>The recursive function <code>perft_driver()</code> performs the actual traversal.</p>
+            <pre><code>// Traverse all nodes for a given move
+void perft_driver(int depth) {
+    // Count nodes
+    if  (!depth) { nodes++; return; }
+    
+    // Generate moves
+    Movelist moves[1];
+    generate_moves(moves);
+    
+    // Play moves
+    for (int move_count = 0; move_count &lt; moves-&gt;count; move_count++) {
+        Position position;
+        save_position(&amp;position);
+        if (!make_move(moves-&gt;moves[move_count], ALL_MOVES)) continue;
+        perft_driver(depth - 1);
+        restore_position(&amp;position);
+    }
+}</code></pre>
+            <p>The first important part is the stopping condition:</p>
+            <pre><code>if (!depth) { nodes++; return; }</code></pre>
+            <p>When <code>depth</code> reaches zero, the engine has reached a leaf of the move tree. There is no need to generate any more moves, so it increments <code>nodes</code> and returns.</p>
+            <p>Otherwise, the function generates every pseudo-legal move and tries them one by one. Each position is saved before the move is played. If <code>make_move()</code> rejects the move because it is illegal, the function simply continues to the next move. Legal moves are searched recursively at one smaller depth.</p>
+            <pre><code>perft_driver(depth - 1);</code></pre>
+            <p>Once that branch has been completely explored, the original position is restored:</p>
+            <pre><code>restore_position(&amp;position);</code></pre>
+            <p>This creates a complete traversal of the legal move tree. Every legal move produces another branch, every branch continues until the requested depth is reached, and every leaf contributes exactly one to <code>nodes</code>.</p>
+            <h4>Testing Every Root Move</h4>
+            <p>The <code>perft_test()</code> function provides a more useful view of the results. Instead of only returning one total node count, it calculates the number of nodes reached through every legal move from the current position.</p>
+            <pre><code>// Traverse all nodes for a given position
+void perft_test(int depth) {
+    // Generate moves
+    printf("\n      Performance test:\n\n");
+    int start_time = get_time_ms();
+    Movelist moves[1];
+    generate_moves(moves);
+    
+    // Play moves
+    for (int move_count = 0; move_count &lt; moves-&gt;count; move_count++) {
+        Position position;
+        save_position(&amp;position);
+        int move = moves-&gt;moves[move_count];
+        if (!make_move(move, ALL_MOVES)) continue;
+        long cum_nodes = nodes;
+        perft_driver(depth - 1);
+        long old_nodes = nodes - cum_nodes;
+        restore_position(&amp;position);
+        printf("    move %d:\t", move_count + 1);
+        print_move(get_move_source(move), get_move_target(move), get_move_promoted(move));
+        printf("\t%ld\n", old_nodes);
+    }
+    
+    // Print resutls
+    printf("\n      Depth: %d", depth);
+    printf("\n      Nodes: %ld", nodes);
+    printf("\n       Time: %d ms\n\n", get_time_ms() - start_time);
+}</code></pre>
+            <p>The function first generates the moves available from the current position. It then treats each root move as a separate perft branch.</p>
+            <p>The interesting part is the use of <code>cum_nodes</code>:</p>
+            <pre><code>long cum_nodes = nodes;
+perft_driver(depth - 1);
+long old_nodes = nodes - cum_nodes;</code></pre>
+            <p><code>perft_driver()</code> increments the global <code>nodes</code> counter. By remembering its value before exploring a move, <code>perft_test()</code> can calculate exactly how many nodes belong to that particular branch.</p>
+            <p>The result is then printed together with the move itself:</p>
+            <pre><code>print_move(get_move_source(move), get_move_target(move), get_move_promoted(move));
+printf("\t%ld\n", old_nodes);</code></pre>
+            <p>This is much more useful for debugging than a single total. If the final node count is wrong, we can look at the individual root moves and immediately see which branch produces a different number of nodes than expected.</p>
+            <h4>Why Perft Is So Valuable</h4>
+            <p>Perft does not tell us whether ABC plays good chess. It answers a much more fundamental question: <strong>does ABC generate and execute the correct chess moves?</strong></p>
+            <p>A wrong perft result can point toward problems in many different parts of the engine: pawn movement, captures, promotions, en passant, castling, attack detection, legality checking, or restoring a position after a move.</p>
+            <p>That makes perft one of the most important debugging tools in a chess engine. Instead of trying to discover these bugs while debugging a complicated search, we can test the move-generation system directly and compare its results against known correct node counts.</p>
+            <p>ABC deliberately keeps the implementation simple. There are more optimized ways to perform perft, but the purpose here is clarity: generate the moves, make each legal move, recursively visit the resulting positions, restore the previous position, and count the leaves.</p>
+            <p>To verify that ABC is correct, we can compare the number of leaf nodes it produces in a given position at each depth with the established perft results published by resources such as the Chess Programming Wiki.</p>
+        </article>
+    </main>
+</body>
+</html>

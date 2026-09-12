@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Move Generation — ABC</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="book">
+        <article class="chapter">
+            <div class="chapter-label">Chapter 7</div>
+            <h2>Move Generation</h2>
+            <h3>Encoding and Adding Moves</h3>
+            <p>Before ABC can generate moves, it needs a compact way to represent them. Every move contains several pieces of information: where the piece starts, where it goes, whether it promotes, and whether it has any special properties.</p>
+            <p>ABC packs all of this information into a single integer:</p>
+            <pre><code>int encode_move(int source, int target, int promoted, int capture, int push, int enpassant, int castling) {
+    return (
+        (source) |
+        (target &lt;&lt; 7) |
+        (promoted &lt;&lt; 14) |
+        (capture &lt;&lt; 18) |
+        (push &lt;&lt; 19) |
+        (enpassant &lt;&lt; 20) |
+        (castling &lt;&lt; 21)
+    );
+}</code></pre>
+            <p>The move is divided into several bit fields. Each field has a fixed position inside the integer:</p>
+            <pre><code>bits    0 -  6    source square
+bits    7 - 13    target square
+bits   14 - 17    promoted piece
+bit         18    capture flag
+bit         19    double pawn push flag
+bit         20    en passant flag
+bit         21    castling flag
+bits   22 - 31    unused</code></pre>
+            <p>The source and target squares each use seven bits because ABC represents squares using the 0x88 board, where every square is stored as an index from 0 to 127. The promoted piece uses four bits, while each special property is represented by a single flag bit.</p>
+            <p>The bitwise OR operator combines all of these fields into one integer. The shift operators move each value into its assigned position. For example, the target square is shifted seven bits because the first seven bits are already occupied by the source square.</p>
+            <h4>Extracting Move Information</h4>
+            <p>Once a move has been encoded, ABC needs to recover its individual components. The accessor functions reverse the packing process:</p>
+            <pre><code>int get_move_source(int move) { return move &amp; 0x7F; }
+int get_move_target(int move) { return (move &gt;&gt; 7) &amp; 0x7F; }
+int get_move_promoted(int move) { return (move &gt;&gt; 14) &amp; 0xF; }
+int get_move_capture(int move) { return (move &gt;&gt; 18) &amp; 0x1; }
+int get_move_push(int move) { return (move &gt;&gt; 19) &amp; 0x1; }
+int get_move_enpassant(int move) { return (move &gt;&gt; 20) &amp; 0x1; }
+int get_move_castling(int move) { return (move &gt;&gt; 21) &amp; 0x1; }</code></pre>
+            <p>The general pattern is to shift the desired field back to the lowest bits and then apply a mask. The mask removes everything except the bits belonging to that particular field.</p>
+            <p>For example, <code>0x7F</code> keeps seven bits, which is enough for a 0x88 square index. The mask <code>0xF</code> keeps four bits for the promoted piece, while <code>0x1</code> extracts a single flag.</p>
+            <p>This gives the rest of the engine a simple interface. Code that needs the target square can call <code>get_move_target()</code>, while code checking whether a move is an en passant capture can call <code>get_move_enpassant()</code>. None of that code needs to know how the move is physically packed inside the integer.</p>
+            <h4>Adding a Move to the List</h4>
+            <p>After a move has been encoded, ABC adds it to the move list using <code>add_move()</code>:</p>
+            <pre><code>void add_move(Movelist *moves, int move) {
+    moves-&gt;moves[moves-&gt;count] = move;
+    moves-&gt;count++;
+}</code></pre>
+            <p>The move is stored at the current end of the list, and the move count is then increased. The function itself does not decide whether a move is legal or special. Its only responsibility is to append an already constructed move to the list.</p>
+            <p>Together, these functions form the basic move representation used throughout ABC. A move can contain its source square, target square, promoted piece, capture status, double pawn push status, en passant status, and castling status, all inside one compact integer.</p>
+    <h3>Detecting Attacked Squares</h3>
+    <p>One of the most important questions in chess is whether a particular square is under attack. ABC needs this information for several parts of the engine, including checking whether a king is in check and determining whether certain moves are legal.</p>
+    <p>The function <code>is_square_attacked()</code> answers this question by examining every piece type that could attack the given square:</p>
+    <pre><code>int is_square_attacked(int square, int color) {
+    for (int piece_type = KING; piece_type &lt;= QUEEN; piece_type++) {
+        int piece = piece_type | (color &lt;&lt; 3);
+        
+        if (piece_type == PAWN) {
+            int direction = 16 * (1 - 2 * color);
+            for (int left_right = -1; left_right &lt;= 1; left_right += 2) {
+                int target = square + direction + left_right;
+                if (!(target &amp; 0x88) &amp;&amp; board[target] == piece) return 1;
+            }
+        }
+        
+        else {
+            int slider = piece_type &amp; 0x04;
+            for (int d = 0; d &lt; offset_length[piece_type]; d++) {
+                int target = square;
+                do {
+                    target += move_offsets[piece_type][d];
+                    if (target &amp; 0x88) break;
+                    int attacker = board[target];
+                    if (attacker != EMPTY) {
+                        if (attacker == piece) return 1;
+                        break;
+                    }
+                } while (slider);
+            }
+        }
+    }
+    
+    return 0;
+}</code></pre>
+            <p>The implementation is not the fastest possible way to detect attacks, but that is an intentional trade-off in ABC. The engine is optimized first for understanding, so the logic is kept compact and easy to follow. As an exercise, try writing a faster version of <code>is_square_attacked()</code>. What would you change?</p>
+            <h4>The Elegance of Piece Encoding</h4>
+            <p>A particularly elegant part of this function is the way ABC constructs the piece it is looking for:</p>
+            <pre><code>int piece = piece_type | (color &lt;&lt; 3);</code></pre>
+            <p>ABC's piece encoding stores the piece type in the lower bits and the color in the upper part of the value. This means the same expression can construct either the White or Black version of any piece without needing separate tables or long chains of conditions.</p>
+            <p>The loop therefore does not need to ask whether it is searching for a White king, Black king, White bishop, Black bishop, and so on. It simply combines the current piece type with the requested color and compares the result directly with the board.</p>
+            <p>This is a good example of how a carefully designed internal representation can make later code significantly simpler.</p>
+            <h4>Pawns</h4>
+            <p>Pawns are handled separately because their attack pattern is different from the other pieces. Their attack direction depends on their color, so ABC first calculates the appropriate forward direction:</p>
+            <pre><code>int direction = 16 * (1 - 2 * color);</code></pre>
+            <p>From the square being tested, the function checks the two diagonally adjacent squares in that direction. The 0x88 test ensures that the calculated square is actually on the board before accessing <code>board[target]</code>.</p>
+            <p>If either square contains the expected pawn, the square is attacked and the function immediately returns <code>1</code>.</p>
+            <h4>Pieces and Sliding Attacks</h4>
+            <p>All other piece types use the movement information already stored in <code>move_offsets</code> and <code>offset_length</code>. This allows kings, knights, bishops, rooks, and queens to be handled by the same general mechanism.</p>
+            <p>The <code>slider</code> value determines whether the piece can continue moving along the same direction:</p>
+            <pre><code>int slider = piece_type &amp; 0x04;</code></pre>
+            <p>Sliding pieces such as bishops, rooks, and queens continue along a direction until they reach the edge of the board or encounter another piece. Kings and knights only need to examine their immediate destination squares.</p>
+            <p>When another piece is encountered, ABC first checks whether it is the piece being searched for. If it is, the square is attacked. If it is a different piece, the path is blocked and that direction can no longer contain an attacker:</p>
+            <pre><code>if (attacker != EMPTY) {
+    if (attacker == piece) return 1;
+    break;
+}</code></pre>
+            <p>The 0x88 representation makes the boundary check especially simple. A target outside the valid board has its fourth bit set, so <code>target &amp; 0x88</code> immediately detects it.</p>
+            <h4>One Function, All Attackers</h4>
+            <p>The important idea is that ABC does not need a separate attack-detection routine for every piece. The piece encoding, movement offsets, offset lengths, and 0x88 board representation work together to make one compact function possible.</p>
+            <p>As soon as any matching attacker is found, the function returns <code>1</code>. If every possible piece type has been checked without finding one, the final return value is <code>0</code>, meaning the square is not attacked.</p>
+            <h3>Generating Moves</h3>
+            <p>With move encoding and attack detection in place, ABC can finally generate chess moves. This is where the pieces of the previous sections come together: the 0x88 board, piece encoding, movement offsets, pawn ranks, castling rights, en passant state, and compact move representation all work together inside one function.</p>
+            <p>The function generates <strong>pseudo-legal moves</strong>. This means the moves follow the movement rules of the pieces, but the generator does not yet remove moves that leave the moving side's king in check. Those moves are filtered later when ABC actually tries to make them.</p>
+            <pre><code>void generate_moves(Movelist *moves) {
+    moves-&gt;count = 0;
+    
+    for (int src = 0; src &lt; 128; src++) {
+        if (!(src &amp; 0x88)) {
+            int piece = board[src];
+            int piece_type = piece &amp; 7;
+            
+            if ((piece &gt;&gt; 3) == side) {
+                
+                if (piece_type == PAWN) {
+                    int direction = -16 * (1 - 2 * side);
+                    int dst = src + direction;
+                    if ((dst &amp; 0x88) == 0 &amp;&amp; board[dst] == EMPTY) { 
+                        if ((dst &amp; 0xF0) == pawn_promoting_rank[side]) {
+                            for (int promoted_piece = QUEEN; promoted_piece &gt;= KNIGHT; promoted_piece--)
+                                add_move(moves, encode_move(src, dst, (promoted_piece | (side &lt;&lt; 3)), 1, 0, 0, 0));
+                        } else {
+                            add_move(moves, encode_move(src, dst, 0, 0, 0, 0, 0));
+                            int double_dst = src + direction * 2;
+                            if ((src &amp; 0xF0) == pawn_starting_rank[side] &amp;&amp; board[double_dst] == EMPTY)
+                                add_move(moves, encode_move(src, double_dst, 0, 0, 1, 0, 0));
+                        }
+                    }
+                    
+                    for (int lr = -1; lr &lt;= 1; lr += 2) {
+                        dst = src + direction + lr;
+                        if (dst &amp; 0x88) continue;
+                        int dst_piece = board[dst];
+                        if (dst_piece != EMPTY &amp;&amp; (dst_piece &gt;&gt; 3) != side) {
+                            if ((dst &amp; 0xF0) == pawn_promoting_rank[side]) {
+                                for (int promoted_piece = QUEEN; promoted_piece &gt;= KNIGHT; promoted_piece--)
+                                    add_move(moves, encode_move(src, dst, (promoted_piece | (side &lt;&lt; 3)), 1, 0, 0, 0));
+                            } else {
+                                add_move(moves, encode_move(src, dst, 0, 1, 0, 0, 0));
+                            }
+                        }
+                        
+                        if (dst == enpassant)
+                            add_move(moves, encode_move(src, dst, 0, 1, 0, 1, 0));
+                    }
+                }
+                
+                else if (piece_type == KING) {
+                    int ks = king_square[side];
+                    if (castle &amp; castling_side[side][0]) {
+                        if (board[ks + 1] == EMPTY &amp;&amp; board[ks + 2] == EMPTY) {
+                            if (is_square_attacked(ks, 1 - side) == 0 &amp;&amp; is_square_attacked(ks + 1, 1 - side) == 0)
+                                add_move(moves, encode_move(ks, ks + 2, 0, 0, 0, 0, 1));
+                        }
+                    }
+                    
+                    if (castle &amp; castling_side[side][1]) {
+                        if (board[ks - 1] == EMPTY &amp;&amp; board[ks - 2] == EMPTY &amp;&amp; board[ks - 3] == EMPTY) {
+                            if (is_square_attacked(ks, 1 - side) == 0 &&
+                                is_square_attacked(ks - 1, 1 - side) == 0)
+                                add_move(moves, encode_move(ks, ks - 2, 0, 0, 0, 0, 1));
+                        }
+                    }
+                }
+                
+                if (piece_type != PAWN) {
+                    int slider = piece_type &amp; 0x04;
+                    for (int d = 0; d &lt; offset_length[piece_type]; d++) {
+                        int dst = src;
+                        do {
+                            dst += move_offsets[piece_type][d];
+                            if (dst &amp; 0x88) break;
+                            int dst_piece = board[dst];
+                            if (dst_piece != EMPTY) {
+                                if ((dst_piece &gt;&gt; 3) != side)
+                                    add_move(moves, encode_move(src, dst, 0, 1, 0, 0, 0));
+                                break;
+                            }
+                            add_move(moves, encode_move(src, dst, 0, 0, 0, 0, 0));
+                        } while (slider);
+                    }
+                }
+            }
+        }
+    }
+}</code></pre>
+            <h4>Starting with an Empty Move List</h4>
+            <p>Every call begins by resetting the move counter:</p>
+            <pre><code>moves-&gt;count = 0;</code></pre>
+            <p>The move array itself does not need to be cleared. Once the count is reset, the generator can simply overwrite the entries as new moves are added.</p>
+            <h4>Walking Through the 0x88 Board</h4>
+            <p>The generator examines every index from <code>0</code> to <code>127</code>:</p>
+            <pre><code>for (int src = 0; src &lt; 128; src++) {
+    if (!(src &amp; 0x88)) {
+        ...
+    }
+}</code></pre>
+            <p>This is another place where the simplicity of 0x88 becomes valuable. The loop can cover the entire 128-element array, while <code>src &amp; 0x88</code> immediately filters out the unused squares between the ranks.</p>
+            <p>For every valid square, ABC reads the piece and extracts its type:</p>
+            <pre><code>int piece = board[src];
+int piece_type = piece &amp; 7;</code></pre>
+            <p>The color is extracted just as elegantly:</p>
+            <pre><code>if ((piece &gt;&gt; 3) == side)</code></pre>
+            <p>Because of the piece encoding, the generator does not need separate loops for White and Black. It simply checks the color encoded inside the piece and processes only the pieces belonging to the side to move.</p>
+            <h4>Generating Pawn Moves</h4>
+            <p>Pawns are the most specialized pieces in chess, so they receive their own section of the generator. Their movement direction is calculated from the side to move:</p>
+            <pre><code>int direction = -16 * (1 - 2 * side);</code></pre>
+            <p>The first test handles the pawn's ordinary forward move. The destination must be on the board and empty:</p>
+            <pre><code>int dst = src + direction;
+if ((dst &amp; 0x88) == 0 &amp;&amp; board[dst] == EMPTY)</code></pre>
+            <p>If the pawn reaches its promotion rank, ABC generates the possible promoted pieces instead of an ordinary pawn move. The loop creates promotions to queen, rook, bishop, and knight.</p>
+            <p>Otherwise, the ordinary pawn move is added. If the pawn is on its starting rank and the square two steps ahead is also empty, ABC adds the double pawn push and sets the <code>push</code> flag in the encoded move.</p>
+            <h4>Pawn Captures and En Passant</h4>
+            <p>Pawn captures are generated by checking the two diagonal squares. The loop:</p>
+            <pre><code>for (int lr = -1; lr &lt;= 1; lr += 2)</code></pre>
+            <p>produces <code>-1</code> and <code>+1</code>, allowing the same code to examine both capture directions.</p>
+            <p>If the destination contains an enemy piece, a capture is added. Promotion captures are handled in exactly the same way as ordinary pawn promotions, except that the capture flag is set.</p>
+            <p>En passant is even simpler because the current en passant square is already stored globally. If the pawn's destination matches <code>enpassant</code>, ABC adds the move with both the capture and en passant flags set:</p>
+            <pre><code>if (dst == enpassant)
+    add_move(moves, encode_move(src, dst, 0, 1, 0, 1, 0));</code></pre>
+            <h4>Castling</h4>
+            <p>Castling is handled separately from ordinary king movement because it depends on several conditions beyond the king's normal movement pattern.</p>
+            <p>First, ABC checks the appropriate castling-rights bit. It then verifies that the required squares are empty and that the king is not currently in check or passing through an attacked square.</p>
+            <p>For kingside castling, the king moves two squares toward the rook. For queenside castling, it moves two squares in the opposite direction. The generated move has the castling flag set:</p>
+            <pre><code>add_move(moves, encode_move(ks, ks + 2, 0, 0, 0, 0, 1));</code></pre>
+            <p>The rook itself does not need to be added as a separate move. The move is represented as one castling move, and the rook's movement is handled later when the move is made.</p>
+            <h4>Generating King, Knight, Bishop, Rook, and Queen Moves</h4>
+            <p>After pawns and castling have been handled, the remaining pieces can use the common movement system built around <code>move_offsets</code> and <code>offset_length</code>.</p>
+            <p>The generator again uses the piece encoding to determine whether the piece is a slider:</p>
+            <pre><code>int slider = piece_type &amp; 0x04;</code></pre>
+            <p>For every allowed direction, ABC starts at the source square and repeatedly applies the corresponding offset. A non-sliding piece stops after one destination, while a sliding piece continues until it reaches the edge of the board or encounters another piece.</p>
+            <p>When an occupied square is encountered, ABC checks its color. An enemy piece can be captured, but a friendly piece blocks the path:</p>
+            <pre><code>if (dst_piece != EMPTY) {
+    if ((dst_piece &gt;&gt; 3) != side)
+        add_move(moves, encode_move(src, dst, 0, 1, 0, 0, 0));
+    break;
+}</code></pre>
+            <p>If the destination is empty, an ordinary non-capturing move is added and a sliding piece continues along the same direction.</p>
+            <h4>Why This Generator Is So Compact</h4>
+            <p>The impressive part of <code>generate_moves()</code> is not simply that it generates moves, but how much of the chess rules are handled by the data structures ABC has already established. The 0x88 board provides boundary detection, piece encoding provides type and color, movement tables provide directions, pawn rank tables provide promotion and double-push information, and move encoding stores all special properties in a single integer.</p>
+            <p>As a result, the generator does not need a huge collection of piece-specific functions. The data representation does much of the work, allowing one relatively small function to describe the movement rules of the entire game.</p>
+            <p>And this is still only <em>pseudo-legal</em> move generation. ABC deliberately separates generating moves from verifying whether the king is left in check. That distinction becomes important now when we are reaching move making.</p>
+            <h3>Making a Move</h3>
+            <p>Generating moves is only half of the problem. Once ABC has a move encoded as a single integer, the engine needs a way to actually apply that move to the current position. This is the responsibility of <code>make_move()</code>.</p>
+            <p>This function is one of the most important pieces of the engine because a chess move can change much more than two squares on the board. A pawn may promote, an en passant capture removes a pawn from a different square, a double pawn push creates a new en passant target, castling moves a rook as well as the king, castling rights can disappear, the king's position may change, and finally the move must be rejected if it leaves the moving side's king in check.</p>
+            <p>ABC keeps all of these responsibilities together in one function:</p>
+            <pre><code>int make_move(int move, int capture_flag) {
+    // Make all moves
+    if (capture_flag == ALL_MOVES) {
+        // Preserve board position
+        Position position;
+        save_position(&amp;position);
+        
+        // Decode move
+        int from_square = get_move_source(move);
+        int to_square = get_move_target(move);
+        int promoted_piece = get_move_promoted(move);
+        int ep = get_move_enpassant(move);
+        int double_push = get_move_push(move);
+        int castling = get_move_castling(move);
+        
+        // Move piece
+        board[to_square] = board[from_square];
+        board[from_square] = EMPTY;
+        
+        // Pawn promotion
+        if (promoted_piece) board[to_square] = promoted_piece;
+        
+        // Enpassant capture
+        if (ep) !side ? (board[to_square + 16] = EMPTY) : (board[to_square - 16] = EMPTY);
+        enpassant = NONE;
+        if (double_push) !side ? (enpassant = to_square + 16) : (enpassant = to_square - 16);
+        
+        // Castling move
+        if (castling) {
+            switch(to_square) {
+                case G1: board[F1] = board[H1]; board[H1] = EMPTY; break;
+                case C1: board[D1] = board[A1]; board[A1] = EMPTY; break;
+                case G8: board[F8] = board[H8]; board[H8] = EMPTY; break;
+                case C8: board[D8] = board[A8]; board[A8] = EMPTY; break;
+            }
+        }
+        
+        // Update castling rights
+        castle &amp;= castling_rights[from_square];
+        castle &amp;= castling_rights[to_square];
+        
+        // Update king square
+        if (board[to_square] == WK || board[to_square] == BK)
+            king_square[side] = to_square;
+
+        // Switch side to move
+        side ^= 1;
+        
+        // Filter illegal moves
+        if (is_square_attacked(!side ? king_square[side ^ 1] : king_square[side ^ 1], side)) {
+            restore_position(&amp;position);
+            return 0;
+        } else return 1;
+    }
+    
+    // Make only captures
+    else {
+        if (get_move_capture(move)) return make_move(move, ALL_MOVES);
+        else return 0;
+    }
+}</code></pre>
+            <h4>One Function, Two Jobs</h4>
+            <p>The first design decision is visible in the function parameters. <code>make_move()</code> does not only mean “make any move.” The second argument determines what kind of moves the caller wants to allow.</p>
+            <pre><code>int make_move(int move, int capture_flag)</code></pre>
+            <p>When <code>capture_flag</code> is <code>ALL_MOVES</code>, the complete move-making process is performed. When it is <code>ONLY_CAPTURES</code>, the function first checks whether the encoded move is a capture:</p>
+            <pre><code>if (get_move_capture(move)) return make_move(move, ALL_MOVES);
+else return 0;</code></pre>
+            <p>This gives ABC a surprisingly elegant interface. The engine does not need a second function such as <code>generate_captures()</code> just for quiescence search. The same move-making machinery is reused, with the caller deciding whether all moves or only captures should be accepted.</p>
+            <p>In the main search, negamax uses <code>ALL_MOVES</code> because it needs to examine every possible move:</p>
+            <pre><code>make_move(move, ALL_MOVES)</code></pre>
+            <p>Quiescence search, on the other hand, uses <code>ONLY_CAPTURES</code> because it is interested only in tactical captures:</p>
+            <pre><code>make_move(move, ONLY_CAPTURES)</code></pre>
+            <p>This is a good example of the design philosophy behind ABC: reuse the same mechanism instead of creating several almost-identical functions.</p>
+            <p>There is a price, though. This abstraction is not necessarily the fastest possible solution. <code>ONLY_CAPTURES</code> still enters <code>make_move()</code>, checks the capture flag, and then calls the full implementation for captures. A highly optimized engine might use specialized capture-making code to remove some of this overhead.</p>
+            <p>Once again, it is a trade-off. ABC chooses simpler and more reusable code over squeezing every last instruction out of the hot path.</p>
+            <h4>Preserving the Position</h4>
+            <p>Before changing anything, ABC saves the complete current position:</p>
+            <pre><code>Position position;
+save_position(&amp;position);</code></pre>
+            <p>This is essential because the move may turn out to be illegal. The generator produces pseudo-legal moves, meaning that a move can obey all the movement rules of the piece while still exposing its own king to attack.</p>
+            <p>Instead of trying to predict this during move generation, ABC simply makes the move, checks the resulting position, and restores the previous state if necessary.</p>
+            <p>This is another important separation of responsibilities:</p>
+            <p><strong><code>generate_moves()</code> generates possibilities.</strong><br>
+            <strong><code>make_move()</code> determines whether a possibility is actually legal.</strong></p>
+            <h4>Decoding the Move</h4>
+            <p>The move integer contains everything needed to perform the operation. ABC extracts the relevant fields using the getters introduced earlier:</p>
+            <pre><code>int from_square = get_move_source(move);
+int to_square = get_move_target(move);
+int promoted_piece = get_move_promoted(move);
+int ep = get_move_enpassant(move);
+int double_push = get_move_push(move);
+int castling = get_move_castling(move);</code></pre>
+            <p>Notice what is not decoded here: the capture flag. For the full move-making path, the board itself already tells ABC what occupies the destination square. The capture flag is primarily useful for deciding whether a move should be accepted by the <code>ONLY_CAPTURES</code> mode.</p>
+            <h4>The Ordinary Move</h4>
+            <p>The basic operation is wonderfully small:</p>
+            <pre><code>board[to_square] = board[from_square];
+board[from_square] = EMPTY;</code></pre>
+            <p>The piece is copied to its destination and the source square becomes empty. If the destination contained an opponent's piece, it is naturally overwritten.</p>
+            <p>This is another benefit of the board representation. A normal capture does not need a special “remove captured piece” operation. Writing the moving piece onto the destination square automatically replaces the captured piece.</p>
+            <h4>Promotion</h4>
+            <p>Promotion is handled immediately after the ordinary move:</p>
+            <pre><code>if (promoted_piece) board[to_square] = promoted_piece;</code></pre>
+            <p>The pawn has already moved to the promotion square, but the encoded move also contains the piece it should become. ABC simply replaces the pawn with that promoted piece.</p>
+            <p>Because the promoted piece already contains its color in its encoding, there is no additional color calculation here. The move generator prepared the correct piece value when it encoded the promotion.</p>
+            <h4>En Passant</h4>
+            <p>En passant is different from an ordinary capture because the captured pawn is not located on the destination square. The moving pawn lands on the en passant target square, while the captured pawn remains one rank behind it.</p>
+            <p>ABC removes that pawn with a compact conditional expression:</p>
+            <pre><code>if (ep) !side ? (board[to_square + 16] = EMPTY) : (board[to_square - 16] = EMPTY);</code></pre>
+            <p>The direction depends on the side that is making the move. After removing the captured pawn, the en passant square is cleared:</p>
+            <pre><code>enpassant = NONE;</code></pre>
+            <p>This is important because an en passant target exists for only one move. If the current move was a double pawn push, ABC creates the new target square instead:</p>
+            <pre><code>if (double_push) !side ? (enpassant = to_square + 16) : (enpassant = to_square - 16);</code></pre>
+            <p>So the same section both consumes the previous en passant opportunity and creates the next one when appropriate.</p>
+            <h4>Castling</h4>
+            <p>Castling is represented as a single move in the move list, but two pieces actually move on the board. The king has already been moved by the ordinary move code, so ABC only needs to relocate the rook:</p>
+            <pre><code>if (castling) {
+    switch(to_square) {
+        case G1: board[F1] = board[H1]; board[H1] = EMPTY; break;
+        case C1: board[D1] = board[A1]; board[A1] = EMPTY; break;
+        case G8: board[F8] = board[H8]; board[H8] = EMPTY; break;
+        case C8: board[D8] = board[A8]; board[A8] = EMPTY; break;
+    }
+}</code></pre>
+            <p>The destination square of the king is enough to identify which castling operation is being performed. There is no need for a separate flag saying “kingside” or “queenside.” The four possible king destinations uniquely determine the rook's movement.</p>
+            <h4>Updating Castling Rights</h4>
+            <p>Castling rights are not permanent. Moving a king removes both castling rights for that side, moving a rook can remove one right, and capturing a rook can also remove the corresponding right.</p>
+            <p>ABC handles all of these cases with two bitwise AND operations:</p>
+            <pre><code>castle &amp;= castling_rights[from_square];
+castle &amp;= castling_rights[to_square];</code></pre>
+            <p>The first mask represents what rights remain after something leaves the source square. The second represents what rights remain after something arrives on the destination square.</p>
+            <p>This is an excellent example of why the castling-rights table was prepared earlier. Instead of writing a collection of special cases such as “if the king moved, clear these bits” or “if the rook on A1 was captured, clear that bit,” the move-making code simply applies the masks associated with the two affected squares.</p>
+            <h4>Tracking the King</h4>
+            <p>ABC also maintains the location of each king separately:</p>
+            <pre><code>if (board[to_square] == WK || board[to_square] == BK)
+    king_square[side] = to_square;</code></pre>
+            <p>This saves the engine from having to search the entire board whenever it needs to know where a king is. The information is updated only when the moving piece is a king.</p>
+            <p>This becomes particularly important in the next stage of move making, because the engine must determine whether the king is attacked after the move.</p>
+            <h4>Changing the Side to Move</h4>
+            <p>Once all board-state changes have been made, ABC switches the side to move:</p>
+            <pre><code>side ^= 1;</code></pre>
+            <p>The XOR operation toggles the side between <code>WHITE</code> and <code>BLACK</code>. If White was moving, it becomes Black's turn; if Black was moving, it becomes White's turn.</p>
+            <p>The timing here is important. The legality test below asks whether the king of the side that just moved is attacked by the new side to move. Switching <code>side</code> first makes that relationship straightforward.</p>
+            <h4>Filtering Illegal Moves</h4>
+            <p>This is the final and most important step:</p>
+            <pre><code>if (is_square_attacked(!side ? king_square[side ^ 1] : king_square[side ^ 1], side)) {
+    restore_position(&amp;position);
+    return 0;
+} else return 1;</code></pre>
+            <p>At this point the move has already been played. ABC asks whether the king belonging to the side that just moved is now attacked by the opponent.</p>
+            <p>If the answer is yes, the move was illegal. The saved position is restored and <code>make_move()</code> returns <code>0</code>:</p>
+            <pre><code>restore_position(&amp;position);
+return 0;</code></pre>
+            <p>If the king is safe, the modified position is kept and the function returns <code>1</code>:</p>
+            <pre><code>return 1;</code></pre>
+            <p>This is the point where the distinction between pseudo-legal and legal moves finally becomes concrete. <code>generate_moves()</code> can generate a move that exposes the king. <code>make_move()</code> detects that situation and rejects it.</p>
+            <h4>The Complete Flow</h4>
+            <p>A useful way to understand <code>make_move()</code> is to follow the position through the function in order:</p>
+            <pre><code>save position
+      ↓
+decode move
+      ↓
+move piece
+      ↓
+handle promotion
+      ↓
+handle en passant
+      ↓
+update en passant target
+      ↓
+move rook for castling
+      ↓
+update castling rights
+      ↓
+update king location
+      ↓
+switch side
+      ↓
+check whether king is attacked
+      ↓
+restore if illegal
+      ↓
+accept if legal</code></pre>
+            <p>Every special chess rule fits somewhere in this sequence. The result is a function that takes one compact move integer and transforms the complete engine state into the next position—or completely undoes the operation if the move was illegal.</p>
+            <h4>A Small Function with a Large Responsibility</h4>
+            <p><code>make_move()</code> is a good demonstration of the philosophy behind ABC. The function is not trying to be the most specialized or aggressively optimized move-making routine possible. Instead, it reuses the structures that have already been built: encoded moves, the 0x88 board, castling masks, king-square tracking, attack detection, and position saving.</p>
+            <p>Most importantly, the same function serves two different parts of the search. Negamax calls it with <code>ALL_MOVES</code>, while quiescence search calls it with <code>ONLY_CAPTURES</code>. That avoids maintaining a separate capture-only move-making implementation.</p>
+            <p>It is elegant because one mechanism does several jobs. It is slower than a heavily specialized implementation because that elegance introduces a little extra work. And that is exactly the kind of trade-off ABC is designed to demonstrate: <strong>simpler code can be more valuable for learning, even when a faster implementation exists.</strong></p>
+            <h3>Saving and Restoring a Position</h3>
+            <p>ABC uses two small functions to preserve and restore the current chess position. Together, they implement the <strong>copy-make</strong> approach used by <code>make_move()</code>.</p>
+            <pre><code>// Preserve current position state
+void save_position(Position *position) {
+    memcpy(position-&gt;board, board, sizeof(board));
+    memcpy(position-&gt;king_square, king_square, sizeof(king_square));
+    position-&gt;side = side;
+    position-&gt;enpassant = enpassant;
+    position-&gt;castle = castle;
+}
+
+// Restore preserved position state
+void restore_position(Position *position) {
+    memcpy(board, position-&gt;board, sizeof(board));
+    memcpy(king_square, position-&gt;king_square, sizeof(king_square));
+    side = position-&gt;side;
+    enpassant = position-&gt;enpassant;
+    castle = position-&gt;castle;
+}</code></pre>
+            <h4>Saving the Position</h4>
+            <p><code>save_position()</code> copies every part of the chess state that can be changed by making a move.</p>
+            <pre><code>memcpy(position-&gt;board, board, sizeof(board));
+memcpy(position-&gt;king_square, king_square, sizeof(king_square));</code></pre>
+            <p>The entire 0x88 board is copied, along with the locations of both kings. The remaining state is copied directly:</p>
+            <pre><code>position-&gt;side = side;
+position-&gt;enpassant = enpassant;
+position-&gt;castle = castle;</code></pre>
+            <p>This gives <code>Position</code> a complete snapshot of the current chess position.</p>
+            <h4>Restoring the Position</h4>
+            <p><code>restore_position()</code> performs the exact opposite operation. The saved board and king locations are copied back, while the remaining state variables are restored directly.</p>
+            <pre><code>memcpy(board, position-&gt;board, sizeof(board));
+memcpy(king_square, position-&gt;king_square, sizeof(king_square));
+side = position-&gt;side;
+enpassant = position-&gt;enpassant;
+castle = position-&gt;castle;</code></pre>
+            <p>After this function finishes, the position is back exactly where it was when <code>save_position()</code> was called.</p>
+            <h4>Why Copy-Make?</h4>
+            <p>This approach saves ABC from having to implement a separate <code>take_back()</code> routine that knows how to reverse every possible change made by a move.</p>
+            <p>With a traditional incremental make/unmake design, the engine would have to remember additional information about every move. For example, if a piece was captured, the engine would need to know <strong>which piece</strong> was captured so that it could be restored later.</p>
+            <p>Copy-make avoids that bookkeeping. ABC simply saves the entire position before changing it and restores the snapshot when necessary.</p>
+            <p>The trade-off is performance: copying the whole position is more expensive than carefully recording and reversing only the changes. But for ABC, the simplicity is worth it. The code is smaller, easier to understand, and there is no complicated <code>take_back()</code> implementation to maintain.</p>
+        </article>
+    </main>
+</body>
+</html>

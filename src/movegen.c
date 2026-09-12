@@ -14,9 +14,9 @@ int encode_move(int source, int target, int promoted, int capture, int push, int
 }
 
 // Extract move params
-int get_move_source(int move) { return move & 0x7f; }
-int get_move_target(int move) { return (move >> 7) & 0x7f; }
-int get_move_promoted(int move) { return (move >> 14) & 0xf; }
+int get_move_source(int move) { return move & 0x7F; }
+int get_move_target(int move) { return (move >> 7) & 0x7F; }
+int get_move_promoted(int move) { return (move >> 14) & 0xF; }
 int get_move_capture(int move) { return (move >> 18) & 0x1; }
 int get_move_push(int move) { return (move >> 19) & 0x1; }
 int get_move_enpassant(int move) { return (move >> 20) & 0x1; }
