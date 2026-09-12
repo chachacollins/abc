@@ -8,6 +8,8 @@ The source code is there because the book is about a real, working engine. The e
 
 ## The Book
 
+<a href="https://maksimkorzh.github.io/abc/">READ ONLINE</a>
+
 The repository contains a complete static HTML book explaining the implementation of ABC.
 
 The book starts with the basic foundations of a chess engine and gradually builds toward a complete UCI-compatible program:
