@@ -15,8 +15,7 @@
             <p>ABC begins its search with a deliberately simple evaluation function based on the <strong>PeSTO evaluation method</strong>. The evaluation uses material values and piece-square tables, with separate values for the opening and endgame. There are no advanced positional terms here. The purpose is to give the search a numerical description of the position that is simple enough to understand while still providing useful chess knowledge.</p>
             <h3>The Evaluation Function</h3>
             <pre><code>// Position evaluation
-int evaluate_position()
-{   
+int evaluate_position() {
     // Init params
     int game_phase = -1;
     int piece_scores = 0;
@@ -423,8 +422,7 @@ if (!legal_moves) {
             <p class="lead">The final piece of ABC's search is the function that connects the search algorithm to the outside world. Called directly by the UCI interface, <code>search_position()</code> prepares a new search, repeatedly deepens it, reports its progress, and finally returns the best move found in the principal variation.</p>
             <h4>Starting a New Search</h4>
             <pre><code>// search position
-int search_position(int depth)
-{
+int search_position(int depth) {
     int start = get_time_ms();
     // Clear search
     nodes = 0;

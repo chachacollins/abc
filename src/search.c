@@ -1,8 +1,7 @@
 #include "abc.h"
 
 // Position evaluation
-int evaluate_position()
-{   
+int evaluate_position() {
     // Init params
     int game_phase = -1;
     int piece_scores = 0;
@@ -240,8 +239,7 @@ int negamax_search(int alpha, int beta, int depth) {
 }
 
 // search position
-int search_position(int depth)
-{
+int search_position(int depth) {
     int start = get_time_ms();
     // Clear search
     nodes = 0;
