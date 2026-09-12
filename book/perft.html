@@ -13,7 +13,7 @@
             <h2>Perft Testing</h2>
             <p>Before trusting a chess engine to search positions intelligently, we need to know that its move generation and move execution are actually correct. This is where <strong>perft testing</strong> becomes extremely useful.</p>
             <p>Perft is short for <em>performance test</em>. Instead of evaluating positions or searching for the best move, the engine simply explores every legal move to a given depth and counts how many positions it reaches. Because the expected node counts for well-known chess positions are known, perft gives us a precise way to find bugs in move generation and move making.</p>
-            <h4>Traversing the Move Tree</h4>
+            <h3>Traversing the Move Tree</h3>
             <p>The recursive function <code>perft_driver()</code> performs the actual traversal.</p>
             <pre><code>// Traverse all nodes for a given move
 void perft_driver(int depth) {
@@ -41,7 +41,7 @@ void perft_driver(int depth) {
             <p>Once that branch has been completely explored, the original position is restored:</p>
             <pre><code>restore_position(&amp;position);</code></pre>
             <p>This creates a complete traversal of the legal move tree. Every legal move produces another branch, every branch continues until the requested depth is reached, and every leaf contributes exactly one to <code>nodes</code>.</p>
-            <h4>Testing Every Root Move</h4>
+            <h3>Testing Every Root Move</h3>
             <p>The <code>perft_test()</code> function provides a more useful view of the results. Instead of only returning one total node count, it calculates the number of nodes reached through every legal move from the current position.</p>
             <pre><code>// Traverse all nodes for a given position
 void perft_test(int depth) {

@@ -48,9 +48,9 @@ int parse_move(char *move_str) {
 	generate_moves(moves);
 	
     // Extract move params
-    int parse_from = (move_str[0] - 'a') + (8 - (move_str[1] - '0')) * 16;
-	int parse_to = (move_str[2] - 'a') + (8 - (move_str[3] - '0')) * 16;
-	int prom_piece = 0;
+    int source = (move_str[0] - 'a') + (8 - (move_str[1] - '0')) * 16;
+	int target = (move_str[2] - 'a') + (8 - (move_str[3] - '0')) * 16;
+	int promoted_piece = 0;
 	
     // Create move
     int move;
@@ -58,13 +58,13 @@ int parse_move(char *move_str) {
     // Encode move if available in move list
 	for(int count = 0; count < moves->count; count++) {
 		move = moves->moves[count];
-		if(get_move_source(move) == parse_from && get_move_target(move) == parse_to) {
-			prom_piece = get_move_promoted(move);
-			if(prom_piece) {
-				if((prom_piece == WN || prom_piece == BN) && move_str[4] == 'n') return move;
-				else if((prom_piece == WB || prom_piece == BB) && move_str[4] == 'b') return move;
-				else if((prom_piece == WR || prom_piece == BR) && move_str[4] == 'r') return move;
-				else if((prom_piece == WQ || prom_piece == BQ) && move_str[4] == 'q') return move;
+		if(get_move_source(move) == source && get_move_target(move) == target) {
+			promoted_piece = get_move_promoted(move);
+			if(promoted_piece) {
+				if((promoted_piece == WN || promoted_piece == BN) && move_str[4] == 'n') return move;
+				else if((promoted_piece == WB || promoted_piece == BB) && move_str[4] == 'b') return move;
+				else if((promoted_piece == WR || promoted_piece == BR) && move_str[4] == 'r') return move;
+				else if((promoted_piece == WQ || promoted_piece == BQ) && move_str[4] == 'q') return move;
 				continue;
 			} return move;
 		}

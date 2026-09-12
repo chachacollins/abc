@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UCI Protocol — ABC</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="book">
+        <article class="chapter">
+            <div class="chapter-label">Chapter 11</div>
+            <h2>UCI Protocol</h2>
+            <p class="lead">The UCI protocol gives the GUI control over when ABC should search, how long it may think, and how deeply it should search.</p>
+            <h3>Resetting Time Control</h3>
+            <pre><code>// Reset time control variables
+void reset_time_control() {
+    quit = 0;
+    movestogo = 30;
+    movetime = -1;
+    time = -1;
+    inc = 0;
+    starttime = 0;
+    stoptime = 0;
+    timeset = 0;
+    stopped = 0;
+}</code></pre>
+            <p>Before every new search, ABC resets all time-control variables to their default values. The values <code>-1</code> are used to indicate that a particular limit has not been supplied by the GUI.</p>
+            <p><code>movestogo</code> defaults to 30, meaning that when the GUI provides a remaining clock time without an explicit number of moves, ABC initially divides that time over 30 moves. <code>movetime</code> represents a fixed amount of time for one move, while <code>inc</code> stores the increment added after each move.</p>
+            <p>The remaining variables describe the actual search timing: <code>starttime</code> records when the search begins, <code>stoptime</code> is the calculated deadline, <code>timeset</code> indicates whether a time limit is active, and <code>stopped</code> allows the search to terminate when the deadline or a UCI <code>stop</code> command is reached.</p>
+            <h3>Parsing the <code>go</code> Command</h3>
+            <pre><code>// Search time settings
+void parse_go(char *command) {
+    reset_time_control();
+    int depth = -1;
+    char *argument = NULL;</code></pre>
+            <p>Every <code>go</code> command starts by resetting the previous time-control state. The local <code>depth</code> variable is initialized to <code>-1</code>, meaning that no explicit depth was provided yet.</p>
+            <p>ABC then searches the command string for the arguments defined by UCI.</p>
+            <pre><code>if ((argument = strstr(command,"infinite"))) {}
+if ((argument = strstr(command,"binc")) &amp;&amp; side == BLACK) inc = atoi(argument + 5);
+if ((argument = strstr(command,"winc")) &amp;&amp; side == WHITE) inc = atoi(argument + 5);
+if ((argument = strstr(command,"wtime")) &amp;&amp; side == WHITE) time = atoi(argument + 6);
+if ((argument = strstr(command,"btime")) &amp;&amp; side == BLACK) time = atoi(argument + 6);
+if ((argument = strstr(command,"movestogo"))) movestogo = atoi(argument + 10);
+if ((argument = strstr(command,"movetime"))) movetime = atoi(argument + 9);
+if ((argument = strstr(command,"depth"))) depth = atoi(argument + 6);</code></pre>
+            <p>The approach is deliberately simple: <code>strstr()</code> locates each possible keyword inside the command, and <code>atoi()</code> converts the number following that keyword into an integer.</p>
+            <p>The clock and increment are selected according to the side to move. White uses <code>wtime</code> and <code>winc</code>, while Black uses <code>btime</code> and <code>binc</code>. Other parameters such as <code>movestogo</code>, <code>movetime</code>, and <code>depth</code> apply regardless of the side to move.</p>
+            <p>The <code>infinite</code> option is recognized, but its body is intentionally empty. This leaves the search without a time limit and enables infinite analysis mode.</p>
+            <h4>Fixed Move Time</h4>
+            <pre><code>if(movetime != -1) {
+    time = movetime;
+    movestogo = 1;
+}</code></pre>
+            <p>If the GUI specifies <code>movetime</code>, that value becomes the complete time budget for the current move. Setting <code>movestogo</code> to 1 prevents the time from being divided across multiple moves.</p>
+            <h4>Calculating the Search Deadline</h4>
+            <pre><code>starttime = get_time_ms();
+depth = depth;
+if (time != -1) {
+    timeset = 1;
+    time /= movestogo;
+    if (time &gt; 1500) time -= 50;
+    stoptime = starttime + time + inc;
+    if (time &lt; 1500 &amp;&amp; inc &amp;&amp; depth == 64) stoptime = starttime + inc - 50;
+}</code></pre>
+            <p>Once the command has been parsed, ABC records the current time as <code>starttime</code>. If a clock time was supplied, <code>timeset</code> is enabled and the available time is divided by the expected number of moves remaining.</p>
+            <p>ABC also reserves a small safety margin when the allocated time is greater than 1500 milliseconds. This gives the engine some room to finish communication and return its move instead of using every last millisecond of the clock.</p>
+            <h4>Choosing the Search Depth</h4>
+            <pre><code>if (depth == -1) depth = 64;
+</code></pre>
+            <p>If the GUI did not specify a search depth, ABC uses <code>64</code> as its practical maximum. This does not mean that the engine will necessarily search all 64 plies: when a clock is active, the search can stop earlier through the time-control mechanism.</p>
+            <pre><code> search_position(depth);</code></pre>
+            <p>Finally, <code>search_position(depth)</code> starts the iterative-deepening search described in the previous chapter. At this point the UCI command has been transformed into the internal state that the search needs: a time budget, a deadline, an increment, and a maximum depth.</p>
+            <h3>Parsing a UCI Move</h3>
+            <p>The search engine works with encoded integer moves, but the UCI protocol represents moves as text such as <code>e2e4</code> or <code>e7e8q</code>. The <code>parse_move</code> function bridges these two representations.</p>
+            <pre><code>// Encode UCI move to integer
+int parse_move(char *move_str) {
+    // Generate moves
+    Movelist moves[1];
+    generate_moves(moves);
+    
+    // Extract move params
+    int source = (move_str[0] - 'a') + (8 - (move_str[1] - '0')) * 16;
+    int target = (move_str[2] - 'a') + (8 - (move_str[3] - '0')) * 16;
+    int promoted_piece = 0;
+    
+    // Create move
+    int move;
+    
+    // Encode move if available in move list
+    for(int count = 0; count &lt; moves->count; count++) {
+        move = moves->moves[count];
+        if(get_move_source(move) == source &amp;&amp; get_move_target(move) == target) {
+            promoted_piece = get_move_promoted(move);
+            if(promoted_piece) {
+                if((promoted_piece == WN || promoted_piece == BN) &amp;&amp; move_str[4] == 'n') return move;
+                else if((promoted_piece == WB || promoted_piece == BB) &amp;&amp; move_str[4] == 'b') return move;
+                else if((promoted_piece == WR || promoted_piece == BR) &amp;&amp; move_str[4] == 'r') return move;
+                else if((promoted_piece == WQ || promoted_piece == BQ) &amp;&amp; move_str[4] == 'q') return move;
+                continue;
+            }
+            return move;
+        }
+    }
+    
+    // Error
+    return 0;
+}</code></pre>
+            <p>The first step is to generate the current position's moves. This is important because the function does not simply construct an integer from the UCI text. Instead, it searches through moves that are actually available in the current position. This means the returned move already contains all of the information generated by the move generator, including captures, promotions, en passant, castling, and other flags.</p>
+            <h4>Converting UCI Coordinates</h4>
+            <p>UCI represents a square using a file and rank, for example <code>e2</code>. ABC uses a 0x88 square index, so the text coordinates must be converted into that representation. The first expression converts the file letter from <code>a</code> through <code>h</code> into a value from <code>0</code> through <code>7</code>. The rank is converted with <code>8 - (...)</code> and multiplied by <code>16</code>, which is exactly the row spacing used by the 0x88 board.</p>
+            <p>The same conversion is performed for the destination square. At this point, <code>source</code> and <code>target</code> are ordinary ABC square indices, so they can be compared directly with the encoded moves.</p>
+            <h4>Finding the Encoded Move</h4>
+            <p>ABC then walks through the generated move list and compares the source and target squares. Once they match, the function checks whether the move is a promotion. For an ordinary move, there is nothing more to distinguish, so the encoded move can immediately be returned.</p>
+            <p>Promotion moves need one additional piece of information because the same source and target squares can represent four different moves: promotion to a knight, bishop, rook, or queen. The fifth character of the UCI move identifies the requested promotion piece, and the function compares it with the promotion stored in the encoded move.</p>
+            <h4>Why Parse Generated Moves?</h4>
+            <p>This approach gives ABC a useful property: the UCI parser does not need to duplicate the rules of chess. Move encoding is already handled by the move generator. The parser only translates the textual coordinates, finds the corresponding generated move, and returns the engine's internal representation.</p>
+            <p>If no matching move is found, the function returns <code>0</code>. In this way, an invalid or unavailable UCI move never needs to be manually reconstructed—it simply fails to match anything in the current move list.</p>
+            <h3>The UCI Loop</h3>
+            <p>The final piece of ABC's UCI implementation is the main loop. This function waits for commands from the GUI, interprets them, updates the position, starts searches, and handles additional debugging command to print the board that makes the engine easier to work with.</p>
+            <pre><code>// UCI protocol
+void uci() {
+    // Keys for position hashing
+    init_random_keys();
+    
+    // User input
+    char user_input[2400];
+    
+    // Engine info
+    printf("id name ABC\n");
+    printf("id author Code Monkey King\n");
+    printf("uciok\n");
+    
+    // UCI loop
+    while(1) {
+        // Handle user input
+        memset(&amp;user_input[0], 0, sizeof(user_input));
+        fflush(stdout);
+        if(!fgets(user_input, sizeof(user_input), stdin)) continue;
+        
+        // No command
+        if(user_input[0] == '\n') continue;
+        
+        // Command "ucinewgame"
+        if (!strncmp(user_input, "ucinewgame", 10)) set_board(START_POSITION);
+        
+        // Command "uci"
+        else if (!strncmp(user_input, "uci", 3)) {
+            printf("id name ABC\n");
+            printf("id author Code Monkey King\n");
+            printf("uciok\n");
+        }
+        
+        // Command "isready"
+        else if (!strncmp(user_input, "isready", 7)) {
+            printf("readyok\n");
+            continue;
+        }
+        
+        // Command "position startpos moves"
+        else if (!strncmp(user_input, "position startpos moves", 23)) {
+            set_board(START_POSITION);
+            char *moves = user_input;
+            moves += 23;
+            int countChar = -1;
+            while(*moves) {
+                if(*moves == ' ') {
+                    *moves++;
+                    make_move(parse_move(moves), ALL_MOVES);
+                    repetition_index++;
+                    repetition_table[repetition_index] = generate_hash_key();
+                } *moves++;
+            }
+        }
+        
+        // Command "position startpos"
+        else if (!strncmp(user_input, "position startpos", 17)) set_board(START_POSITION);
+        
+        // Command "position fen"
+        else if (!strncmp(user_input, "position fen", 12)) {
+            char *fen = user_input;
+            fen += 13;
+            set_board(fen);
+            char *moves = user_input;
+            while(strncmp(moves, "moves", 5)) {
+                *moves++;
+                if(*moves == '\0') break;
+            } moves += 4;
+            if(*moves == 's') {
+                int countChar = -1;
+                while(*moves) {
+                    if(*moves == ' ') {
+                        *moves++;
+                        make_move(parse_move(moves), ALL_MOVES);
+                        repetition_index++;
+                        repetition_table[repetition_index] = generate_hash_key();
+                    } *moves++;
+                }
+            }
+        }
+        
+        // Command "go depth"
+        else if (!strncmp(user_input, "go depth", 8)) {
+            char *go = user_input;
+            go += 9;
+            int depth = *go - '0';
+            search_position(depth);
+        }
+        
+        // Other "go" commands
+        else if (!strncmp(user_input, "go", 2)) parse_go(user_input);
+        
+        // Debug command to print board
+        else if (!strncmp(user_input, "board", 5)) print_board();
+        
+        // Command "quit"
+        else if (!strncmp(user_input, "quit", 4)) break;
+    }
+}</code></pre>
+            <h4>Starting the Engine</h4>
+            <p>The first thing <code>uci()</code> does is initialize the random keys used by ABC's position hashing. After that, the engine prints its identity and the <code>uciok</code> response. A UCI-compatible GUI can now recognize ABC as a chess engine and begin sending commands.</p>
+            <h4>Waiting for Commands</h4>
+            <p>The main loop continuously waits for input with <code>fgets()</code>. Each command is stored in <code>user_input</code>, and empty lines are ignored. From there, ABC checks the beginning of the string and dispatches the command to the appropriate part of the engine.</p>
+            <h4>Initializing and Checking the Engine</h4>
+            <p><code>ucinewgame</code> resets the board to the standard starting position. The <code>uci</code> command causes ABC to identify itself again, while <code>isready</code> produces <code>readyok</code>. These commands are simple, but they are important because they establish the basic communication handshake between the GUI and the engine.</p>
+            <h4>Setting a Position</h4>
+            <p>The <code>position</code> command is where the GUI tells ABC what position it should search. For <code>position startpos moves</code>, ABC first loads the standard starting position and then walks through the supplied UCI moves. Each move is converted into ABC's internal representation with <code>parse_move()</code>, played with <code>make_move()</code>, and recorded in the repetition table.</p>
+            <p>The FEN form works similarly. ABC first passes the FEN to <code>set_board()</code>, then looks for a following <code>moves</code> section. If moves are present, they are replayed one by one so that the engine reaches exactly the position requested by the GUI.</p>
+            <h4>Starting a Search</h4>
+            <p>The <code>go depth</code> command provides a simple direct way to search to a specified depth. The depth is extracted from the command and passed to <code>search_position()</code>.</p>
+            <p>Other forms of <code>go</code>, such as time-controlled searches, are passed to <code>parse_go()</code>. That function handles the time-control parameters we saw earlier and eventually starts the search with the appropriate limits.</p>
+            <h4>Debugging and Shutdown</h4>
+            <p>ABC also accepts a simple <code>board</code> command that prints the current internal position. This is not part of the UCI protocol, but it is extremely useful while developing the engine.</p>
+            <p>Finally, the <code>quit</code> command breaks the loop and returns from <code>uci()</code>. At that point the engine process can terminate normally.</p>
+            <p>And with that, ABC has a complete communication layer: it can identify itself, receive positions, parse moves, manage time controls, start searches, report results, and respond to the commands required by a UCI chess GUI. The chess engine is no longer just a collection of chess algorithms—it is a program that can actually sit behind a GUI and play a game.</p>
+        </article>
+    </main>
+</body>
+</html>

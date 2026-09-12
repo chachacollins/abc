@@ -13,7 +13,7 @@
             <h2>Position Hashing</h2>
             <p>Chess engines often need a compact way to identify a position. Instead of comparing an entire board and every piece of game state, we can generate a single number that represents the current position. This is called a <strong>position hash</strong>.</p>
             <p>ABC uses position hashing for one specific purpose: <strong>threefold repetition detection</strong>. It does not use the hash as a transposition table key, because ABC does not have a search hash table. The goal here is therefore not to make the search faster, but simply to recognize when the same position has occurred before.</p>
-            <h4>Generating Random Numbers</h4>
+            <h3>Generating Random Numbers</h3>
             <p>First, ABC needs a collection of pseudo-random numbers. These numbers will later become the hash keys for individual pieces on individual squares.</p>
             <pre><code>// Generate 32-bit pseudo random numbers (signed)
 int get_random_32_number() {
@@ -26,7 +26,7 @@ int get_random_32_number() {
 }</code></pre>
             <p>The function uses a small <strong>xorshift</strong>-style algorithm. It starts with the current <code>random_state</code>, applies a sequence of XOR and bit-shift operations, stores the new state, and returns it.</p>
             <p>The important property here is that repeated calls produce a sequence of different pseudo-random 32-bit values. They do not need to be cryptographically random. They simply need to provide sufficiently varied values for constructing position keys.</p>
-            <h4>Initializing the Hash Keys</h4>
+            <h3>Initializing the Hash Keys</h3>
             <p>ABC creates a random key for every combination of piece type and square.</p>
             <pre><code>// Init random hash keys
 void init_random_keys() {
@@ -36,7 +36,7 @@ void init_random_keys() {
 }</code></pre>
             <p>The <code>piece_keys</code> array contains seven sets of keys, one for each piece type, and 128 possible 0x88 square indices. During initialization, every entry receives a pseudo-random value.</p>
             <p>For example, the key for a knight on one square is different from the key for the same knight on another square. This gives the final hash enough information to distinguish different arrangements of pieces.</p>
-            <h4>Building the Position Hash</h4>
+            <h3>Building the Position Hash</h3>
             <p>Once the keys have been initialized, ABC can generate a hash for the current board.</p>
             <pre><code>// Generate "almost" unique position ID aka hash key from scratch
 int generate_hash_key() {

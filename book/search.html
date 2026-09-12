@@ -13,7 +13,7 @@
             <h2>Search</h2>
             <p class="lead">Search is the heart of a chess engine. Evaluation tells ABC how good a position is, but search is what allows the engine to look ahead, compare possible moves, and eventually decide what it should play.</p>
             <p>ABC begins its search with a deliberately simple evaluation function based on the <strong>PeSTO evaluation method</strong>. The evaluation uses material values and piece-square tables, with separate values for the opening and endgame. There are no advanced positional terms here. The purpose is to give the search a numerical description of the position that is simple enough to understand while still providing useful chess knowledge.</p>
-            <h4>The Evaluation Function</h4>
+            <h3>The Evaluation Function</h3>
             <pre><code>// Position evaluation
 int evaluate_position()
 {   
