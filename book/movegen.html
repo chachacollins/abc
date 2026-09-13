@@ -9,6 +9,7 @@
 <body>
     <main class="book">
         <article class="chapter">
+            <nav class="chapter-nav"><a href="../index.html">← Contents</a></nav>
             <div class="chapter-label">Chapter 7</div>
             <h2>Move Generation</h2>
             <h3>Encoding and Adding Moves</h3>
@@ -489,6 +490,10 @@ castle = position-&gt;castle;</code></pre>
             <p>With a traditional incremental make/unmake design, the engine would have to remember additional information about every move. For example, if a piece was captured, the engine would need to know <strong>which piece</strong> was captured so that it could be restored later.</p>
             <p>Copy-make avoids that bookkeeping. ABC simply saves the entire position before changing it and restores the snapshot when necessary.</p>
             <p>The trade-off is performance: copying the whole position is more expensive than carefully recording and reversing only the changes. But for ABC, the simplicity is worth it. The code is smaller, easier to understand, and there is no complicated <code>take_back()</code> implementation to maintain.</p>
+            <nav class="chapter-nav-bottom">
+                <a href="io.html">← Previous</a>
+                <a class="next" href="perft.html">Next →</a>
+            </nav>
         </article>
     </main>
 </body>

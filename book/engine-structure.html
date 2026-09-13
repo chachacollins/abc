@@ -9,6 +9,7 @@
 <body>
     <main class="book">
         <article class="chapter">
+            <nav class="chapter-nav"><a href="../index.html">← Contents</a></nav>
             <div class="chapter-label">Chapter 3</div>
             <h2>Engine Structure</h2>
             <p class="lead">Before looking at how ABC plays chess, it is useful to understand how the code itself is organized. The engine is intentionally split into a small number of simple files, with each file responsible for a particular part of the program.</p>
@@ -32,6 +33,10 @@
             <p>This structure also fits the educational purpose of ABC. There is little abstraction between the source code and the concepts being implemented. When we introduce a new part of the engine, there should be a clear place where its implementation lives.</p>
             <p>As the engine grows, this separation will become increasingly useful. Chess engines contain many different systems that have to work together, but understanding them one at a time is much easier than trying to understand the entire program as a single piece of code.</p>
             <p>ABC therefore starts with a simple principle: <strong>shared definitions belong together, shared state is defined in one place, and each engine component gets its own implementation.</strong></p>
+            <nav class="chapter-nav-bottom">
+                <a href="development-environment.html">← Previous</a>
+                <a class="next" href="header-file.html">Next →</a>
+            </nav>
         </article>
     </main>
 </body>

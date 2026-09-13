@@ -9,6 +9,7 @@
 <body>
     <main class="book">
         <article class="chapter">
+            <nav class="chapter-nav"><a href="../index.html">← Contents</a></nav>
             <div class="chapter-label">Chapter 11</div>
             <h2>UCI Protocol</h2>
             <p class="lead">The UCI protocol gives the GUI control over when ABC should search, how long it may think, and how deeply it should search.</p>
@@ -233,6 +234,10 @@ void uci() {
             <p>ABC also accepts a simple <code>board</code> command that prints the current internal position. This is not part of the UCI protocol, but it is extremely useful while developing the engine.</p>
             <p>Finally, the <code>quit</code> command breaks the loop and returns from <code>uci()</code>. At that point the engine process can terminate normally.</p>
             <p>And with that, ABC has a complete communication layer: it can identify itself, receive positions, parse moves, manage time controls, start searches, report results, and respond to the commands required by a UCI chess GUI. The chess engine is no longer just a collection of chess algorithms—it is a program that can actually sit behind a GUI and play a game.</p>
+            <nav class="chapter-nav-bottom">
+                <a href="search.html">← Previous</a>
+                <a class="next" href="misc.html">Next →</a>
+            </nav>
         </article>
     </main>
 </body>

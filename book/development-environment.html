@@ -9,6 +9,7 @@
 <body>
     <main class="book">
         <article class="chapter">
+            <nav class="chapter-nav"><a href="../index.html">← Contents</a></nav>
             <div class="chapter-label">Chapter 2</div>
             <h2>Installing GCC</h2>
             <p class="lead">ABC is written in C, so before we can compile the engine we need a C compiler. GCC is used to turn the ABC source code into an executable program, and the same build process works on both Windows and Linux.</p>
@@ -40,6 +41,10 @@ sudo apt install gcc</code></pre>
             <pre><code>gcc -Ofast -flto *.c -o abc</code></pre>
             <p>The important part is that you normally do not need to type either command yourself. Run <code>make</code>, and the Makefile takes care of the build.</p>
             <p>Once GCC and Make are installed, ABC can be compiled on both Windows and Linux using the same simple build process.</p>
+            <nav class="chapter-nav-bottom">
+                <a href="preface.html">← Previous</a>
+                <a class="next" href="engine-structure.html">Next →</a>
+            </nav>
         </article>
     </main>
 </body>

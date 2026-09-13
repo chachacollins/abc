@@ -9,6 +9,7 @@
 <body>
     <main class="book">
         <article class="chapter">
+            <nav class="chapter-nav"><a href="../index.html">← Contents</a></nav>
             <div class="chapter-label">Chapter 9</div>
             <h2>Position Hashing</h2>
             <p>Chess engines often need a compact way to identify a position. Instead of comparing an entire board and every piece of game state, we can generate a single number that represents the current position. This is called a <strong>position hash</strong>.</p>
@@ -64,6 +65,10 @@ int generate_hash_key() {
             <p>Many stronger chess engines use position hashes as keys for a <strong>transposition table</strong>, allowing the search to remember previously analyzed positions and reuse their results. ABC deliberately does not do this.</p>
             <p>Here, hashing has a much narrower responsibility: when ABC needs to determine whether a position has appeared repeatedly, it can generate a compact identifier and compare it with previously stored position keys.</p>
             <p>This keeps the implementation focused. ABC gets the useful property of position identification without introducing the additional complexity of a full search transposition table.</p>
+            <nav class="chapter-nav-bottom">
+                <a href="perft.html">← Previous</a>
+                <a class="next" href="search.html">Next →</a>
+            </nav>
         </article>
     </main>
 </body>

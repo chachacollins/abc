@@ -7,8 +7,10 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
     <main class="book">
         <article class="chapter">
+            <nav class="chapter-nav"><a href="../index.html">← Contents</a></nav>
             <div class="chapter-label">Chapter 1</div>
             <h2>Preface</h2>
             <p class="lead">When writing a chess engine, one of the most complicated things to figure out is not how to write the code or even which data structures to use. The difficult question comes earlier: <strong>what exactly are we trying to optimize for?</strong></p>
@@ -27,6 +29,10 @@
             <p>Performance still matters. After all, a chess engine that cannot search deeply enough is not particularly interesting. But performance is not the only metric, and it is not always the most important one.</p>
             <p>The central idea of this book is therefore simple: <strong>we are optimizing for understanding.</strong></p>
             <p>If you are looking for a guide to building the strongest possible chess engine, this book is probably not the right place to start. If, however, you want to understand what happens inside a chess engine — how a position is represented, how moves are generated, how a position is evaluated, and how a search algorithm decides which move to play — then this is exactly what ABC is designed for.</p>
+             <nav class="chapter-nav-bottom">
+                <a href="../index.html">← Contents</a>
+                <a class="next" href="development-environment.html">Next →</a>
+            </nav>
         </article>
     </main>
 </body>

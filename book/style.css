@@ -133,6 +133,72 @@ body {
     font-size: 21px;
 }
 
+.chapter-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0 0 45px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #d8d4cc;
+}
+
+.chapter-nav a {
+    color: #756f65;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-decoration: none;
+    text-transform: uppercase;
+}
+
+.chapter-nav a:hover {
+    color: #292929;
+}
+
+.chapter-nav-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 65px;
+    padding-top: 20px;
+    border-top: 1px solid #d8d4cc;
+}
+
+.chapter-nav-bottom a {
+    color: #756f65;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 16px;
+    text-decoration: none;
+}
+
+.chapter-nav-bottom a:hover {
+    color: #292929;
+}
+
+.chapter-nav-bottom .next {
+    margin-left: auto;
+}
+
+.book-navigation {
+    display: flex;
+    margin-top: 30px;
+}
+
+.book-navigation-center {
+    justify-content: center;
+}
+
+.book-navigation a {
+    color: #756f65;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 15px;
+    text-decoration: none;
+}
+
+.book-navigation a:hover {
+    color: #292929;
+}
+
 .note {
     margin: 40px 0;
     padding: 25px 30px;
@@ -201,6 +267,14 @@ pre code {
 
     .chapter .lead {
         font-size: 19px;
+    }
+
+    .chapter-nav {
+        margin-bottom: 35px;
+    }
+
+    .chapter-nav-bottom {
+        margin-top: 50px;
     }
 
     .note {

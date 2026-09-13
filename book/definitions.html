@@ -9,6 +9,7 @@
 <body>
     <main class="book">
         <article class="chapter">
+            <nav class="chapter-nav"><a href="../index.html">← Contents</a></nav>
             <div class="chapter-label">Chapter 5</div>
             <h2>Global Definitions</h2>
             <h3>Board Representation</h3>
@@ -361,6 +362,10 @@ int stopped = 0;</code></pre>
             <p>The <code>starttime</code> and <code>stoptime</code> variables hold the calculated start and deadline times for a search. The <code>timeset</code> flag indicates whether a time limit has actually been established.</p>
             <p>Finally, <code>stopped</code> indicates that the current search should stop. Together, these variables allow ABC to receive UCI time controls, calculate when a search must end, and communicate that information to the search code.</p>
             <p>The complete handling of UCI commands and time-controlled searching will appear later when we examine <strong>UCI communication and search control</strong>.</p>
+            <nav class="chapter-nav-bottom">
+                <a href="header-file.html">← Previous</a>
+                <a class="next" href="io.html">Next →</a>
+            </nav>
         </article>
     </main>
 </body>

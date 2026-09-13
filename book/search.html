@@ -9,6 +9,7 @@
 <body>
     <main class="book">
         <article class="chapter">
+            <nav class="chapter-nav"><a href="../index.html">← Contents</a></nav>
             <div class="chapter-label">Chapter 10</div>
             <h2>Search</h2>
             <p class="lead">Search is the heart of a chess engine. Evaluation tells ABC how good a position is, but search is what allows the engine to look ahead, compare possible moves, and eventually decide what it should play.</p>
@@ -472,6 +473,10 @@ printf("\n");</code></pre>
                 <div class="note-title">Why iterative deepening is so useful</div>
                 <p>Iterative deepening may appear wasteful because the engine searches the same position at several depths, but the earlier searches are valuable. They establish a strong principal variation and useful move-ordering information before the next, more expensive iteration begins. More importantly for ABC, if the search is stopped during a deeper iteration, the last completed iteration has already produced a valid result.</p>
             </div>
+            <nav class="chapter-nav-bottom">
+                <a href="hash.html">← Previous</a>
+                <a class="next" href="uci.html">Next →</a>
+            </nav>
         </article>
     </main>
 </body>

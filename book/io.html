@@ -9,6 +9,7 @@
 <body>
     <main class="book">
         <article class="chapter">
+            <nav class="chapter-nav"><a href="../index.html">← Contents</a></nav>
             <div class="chapter-label">Chapter 6</div>
             <h2>Input & Output Functions</h2>
             <h3>Parsing FEN</h3>
@@ -133,6 +134,10 @@ char *dst = square_to_coords[target];</code></pre>
             <pre><code>printf("%s%s%c ", src, dst, prom);</code></pre>
             <p>A move such as <code>e2e4</code> can therefore be produced from the internal source and target squares, while a promotion such as <code>e7e8q</code> additionally includes the promoted piece.</p>
             <p>This small function completes the basic input and output helpers in <code>io.c</code>. Positions can be read from FEN, the internal board can be inspected in the console, and individual moves can be converted back into the notation expected by the outside world.</p>
+            <nav class="chapter-nav-bottom">
+                <a href="definitions.html">← Previous</a>
+                <a class="next" href="movegen.html">Next →</a>
+            </nav>
         </article>
     </main>
 </body>

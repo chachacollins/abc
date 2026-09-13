@@ -9,6 +9,7 @@
 <body>
     <main class="book">
         <article class="chapter">
+            <nav class="chapter-nav"><a href="../index.html">← Contents</a></nav>
             <div class="chapter-label">Chapter 12</div>
             <h2>Miscellaneous Functions</h2>
             <p class="lead">The final functions in ABC are small utilities that connect the search with the outside world. They provide a portable millisecond timer and allow the engine to notice commands such as <code>stop</code> and <code>quit</code> while it is thinking.</p>
@@ -86,6 +87,10 @@ int input_waiting() {
             <p>The last function, <code>input_waiting()</code>, is the platform-specific part. On Unix-like systems, <code>select()</code> performs a non-blocking check of standard input. On Windows, the function handles both pipe input and console input using the appropriate Windows APIs.</p>
             <p>These utilities are small, but they complete an important part of the engine architecture: the search does not have to block while waiting for the GUI. It can continue thinking, periodically check the clock and input, and stop when the GUI or time control asks it to.</p>
             <p>With these functions in place, the implementation of ABC is complete. From the 0x88 board and move encoding all the way through evaluation, search, UCI communication, and time management, every major component of the engine is now connected.</p>
+            <nav class="chapter-nav-bottom">
+                <a href="uci.html">← Previous</a>
+                <a class="next" href="afterword.html">Next →</a>
+            </nav>
         </article>
     </main>
 </body>

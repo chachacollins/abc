@@ -9,6 +9,7 @@
 <body>
     <main class="book">
         <article class="chapter">
+            <nav class="chapter-nav"><a href="../index.html">← Contents</a></nav>
             <div class="chapter-label">Chapter 4</div>
             <h2>The Common Header</h2>
             <p class="lead">The <code>abc.h</code> file is the common language of ABC. It contains the definitions, constants, data structures, global variables, and function declarations that are shared by the different parts of the engine.</p>
@@ -98,6 +99,10 @@ extern void print_move(int source, int target, int promoted);</code></pre>
             <p>As the engine becomes more complicated, this separation becomes increasingly valuable. The search code can call <code>generate_moves()</code> without knowing how move generation works internally. The UCI code can call <code>search_position()</code> without knowing how the search algorithm is implemented.</p>
             <p>The header therefore provides a simple contract between the different parts of ABC: these are the types, constants, variables, and functions that make up the engine's shared interface.</p>
             <p>It is not the most sophisticated architecture possible, and that is intentional. ABC is designed to keep the connection between the concepts of a chess engine and their implementation in C as visible as possible.</p>
+            <nav class="chapter-nav-bottom">
+                <a href="engine-structure.html">← Previous</a>
+                <a class="next" href="definitions.html">Next →</a>
+            </nav>
         </article>
     </main>
 </body>

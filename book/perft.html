@@ -9,6 +9,7 @@
 <body>
     <main class="book">
         <article class="chapter">
+            <nav class="chapter-nav"><a href="../index.html">← Contents</a></nav>
             <div class="chapter-label">Chapter 8</div>
             <h2>Perft Testing</h2>
             <p>Before trusting a chess engine to search positions intelligently, we need to know that its move generation and move execution are actually correct. This is where <strong>perft testing</strong> becomes extremely useful.</p>
@@ -87,6 +88,10 @@ printf("\t%ld\n", old_nodes);</code></pre>
             <p>That makes perft one of the most important debugging tools in a chess engine. Instead of trying to discover these bugs while debugging a complicated search, we can test the move-generation system directly and compare its results against known correct node counts.</p>
             <p>ABC deliberately keeps the implementation simple. There are more optimized ways to perform perft, but the purpose here is clarity: generate the moves, make each legal move, recursively visit the resulting positions, restore the previous position, and count the leaves.</p>
             <p>To verify that ABC is correct, we can compare the number of leaf nodes it produces in a given position at each depth with the established perft results published by resources such as the Chess Programming Wiki.</p>
+            <nav class="chapter-nav-bottom">
+                <a href="movegen.html">← Previous</a>
+                <a class="next" href="hash.html">Next →</a>
+            </nav>
         </article>
     </main>
 </body>
