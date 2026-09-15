@@ -155,14 +155,6 @@ void uci() {
 			}
 		}
         
-        // Command "go depth"
-        else if (!strncmp(user_input, "go depth", 8)) {
-			char *go = user_input;
-			go += 9;
-			int depth = *go - '0';
-			search_position(depth);
-		}
-        
         // Other "go" commands
         else if (!strncmp(user_input, "go", 2)) parse_go(user_input);
         

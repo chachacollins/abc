@@ -200,14 +200,6 @@ void uci() {
             }
         }
         
-        // Command "go depth"
-        else if (!strncmp(user_input, "go depth", 8)) {
-            char *go = user_input;
-            go += 9;
-            int depth = *go - '0';
-            search_position(depth);
-        }
-        
         // Other "go" commands
         else if (!strncmp(user_input, "go", 2)) parse_go(user_input);
         
@@ -228,8 +220,7 @@ void uci() {
             <p>The <code>position</code> command is where the GUI tells ABC what position it should search. For <code>position startpos moves</code>, ABC first loads the standard starting position and then walks through the supplied UCI moves. Each move is converted into ABC's internal representation with <code>parse_move()</code>, played with <code>make_move()</code>, and recorded in the repetition table.</p>
             <p>The FEN form works similarly. ABC first passes the FEN to <code>set_board()</code>, then looks for a following <code>moves</code> section. If moves are present, they are replayed one by one so that the engine reaches exactly the position requested by the GUI.</p>
             <h4>Starting a Search</h4>
-            <p>The <code>go depth</code> command provides a simple direct way to search to a specified depth. The depth is extracted from the command and passed to <code>search_position()</code>.</p>
-            <p>Other forms of <code>go</code>, such as time-controlled searches, are passed to <code>parse_go()</code>. That function handles the time-control parameters we saw earlier and eventually starts the search with the appropriate limits.</p>
+            <p>The <code>go</code> command provides a way to search a position with specified parameters such as time-controlled or fixed depth searches, those are handled by <code>parse_go()</code></p>
             <h4>Debugging and Shutdown</h4>
             <p>ABC also accepts a simple <code>board</code> command that prints the current internal position. This is not part of the UCI protocol, but it is extremely useful while developing the engine.</p>
             <p>Finally, the <code>quit</code> command breaks the loop and returns from <code>uci()</code>. At that point the engine process can terminate normally.</p>
