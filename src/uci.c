@@ -155,7 +155,7 @@ void uci() {
 			}
 		}
         
-        // Other "go" commands
+        // Search commands
         else if (!strncmp(user_input, "go", 2)) parse_go(user_input);
         
         // Debug command to print board
