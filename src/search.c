@@ -1,7 +1,8 @@
 #include "abc.h"
 
 // Position evaluation
-int evaluate_position() {
+int evaluate_position()
+{   
     // Init params
     int game_phase = -1;
     int piece_scores = 0;
@@ -239,7 +240,8 @@ int negamax_search(int alpha, int beta, int depth) {
 }
 
 // search position
-int search_position(int depth) {
+int search_position(int depth)
+{
     int start = get_time_ms();
     // Clear search
     nodes = 0;
@@ -258,10 +260,10 @@ int search_position(int depth) {
         
         // Output UCI info
         if (score > -49000 && score < -48000)
-            printf("info score mate %d depth %d nodes %lld time %d pv ", -(score + 49000) / 2 - 1, current_depth, nodes, get_time_ms() - start);
+            printf("info score mate %d depth %d nodes %ld time %d pv ", -(score + 49000) / 2 - 1, current_depth, nodes, get_time_ms() - start);
         else if (score > 48000 && score < 49000)
-            printf("info score mate %d depth %d nodes %lld time %d pv ", (49000 - score) / 2 + 1, current_depth, nodes, get_time_ms() - start);   
-        else printf("info score cp %d depth %d nodes %lld time %d pv ", score, current_depth, nodes, get_time_ms() - start);
+            printf("info score mate %d depth %d nodes %ld time %d pv ", (49000 - score) / 2 + 1, current_depth, nodes, get_time_ms() - start);   
+        else printf("info score cp %d depth %d nodes %ld time %d pv ", score, current_depth, nodes, get_time_ms() - start);
         
         //printf("info score cp %d depth %d nodes %ld pv ", score, current_depth, nodes);
         for (int i = 0; i < pv_length[0]; i++) {
