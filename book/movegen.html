@@ -167,15 +167,18 @@ int get_move_castling(int move) { return (move &gt;&gt; 21) &amp; 0x1; }</code><
                     int ks = king_square[side];
                     if (castle &amp; castling_side[side][0]) {
                         if (board[ks + 1] == EMPTY &amp;&amp; board[ks + 2] == EMPTY) {
-                            if (is_square_attacked(ks, 1 - side) == 0 &amp;&amp; is_square_attacked(ks + 1, 1 - side) == 0)
+                            if (is_square_attacked(ks, 1 - side) == 0 &amp;&amp;
+                                is_square_attacked(ks + 1, 1 - side) == 0 &amp;&amp;
+                                is_square_attacked(ks + 2, 1 - side) == 0)
                                 add_move(moves, encode_move(ks, ks + 2, 0, 0, 0, 0, 1));
                         }
                     }
                     
                     if (castle &amp; castling_side[side][1]) {
                         if (board[ks - 1] == EMPTY &amp;&amp; board[ks - 2] == EMPTY &amp;&amp; board[ks - 3] == EMPTY) {
-                            if (is_square_attacked(ks, 1 - side) == 0 &&
-                                is_square_attacked(ks - 1, 1 - side) == 0)
+                            if (is_square_attacked(ks, 1 - side) == 0 &amp;&amp;
+                                is_square_attacked(ks - 1, 1 - side) == 0 &amp;&amp;
+                                is_square_attacked(ks - 2, 1 - side) == 0)
                                 add_move(moves, encode_move(ks, ks - 2, 0, 0, 0, 0, 1));
                         }
                     }

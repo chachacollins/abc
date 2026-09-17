@@ -1,6 +1,5 @@
 #include "abc.h"
 
-// Pack move params into a single integer
 int encode_move(int source, int target, int promoted, int capture, int push, int enpassant, int castling) {
     return (
                (source) |
@@ -113,13 +112,16 @@ void generate_moves(Movelist *moves) {
                     int ks = king_square[side];
                     if (castle & castling_side[side][0]) {
                       if (board[ks + 1] == EMPTY && board[ks + 2] == EMPTY) {
-                        if (is_square_attacked(ks, 1 - side) == 0 && is_square_attacked(ks + 1, 1 - side) == 0)
+                        if (is_square_attacked(ks, 1 - side) == 0 &&
+                            is_square_attacked(ks + 1, 1 - side) == 0 &&
+                            is_square_attacked(ks + 2, 1 - side) == 0)
                             add_move(moves, encode_move(ks, ks + 2, 0, 0, 0, 0, 1));
                       }
                     } if (castle & castling_side[side][1]) {
                       if (board[ks - 1] == EMPTY && board[ks - 2] == EMPTY && board[ks - 3] == EMPTY) {
                         if (is_square_attacked(ks, 1 - side) == 0 &&
-                            is_square_attacked(ks - 1, 1 - side) == 0)
+                            is_square_attacked(ks - 1, 1 - side) == 0 &&
+                            is_square_attacked(ks - 2, 1 - side) == 0)
                             add_move(moves, encode_move(ks, ks - 2, 0, 0, 0, 0, 1));
                       }
                     }
